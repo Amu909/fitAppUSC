@@ -16,7 +16,7 @@ export default function AnalyticsDashboard() {
     backgroundGradientTo: '#fff',
     color: () => `#e60404`,
     labelColor: () => '#333',
-    strokeWidth: 8,
+    strokeWidth: 5,
   };
 
   return (
@@ -43,19 +43,19 @@ export default function AnalyticsDashboard() {
       </View>
 
       <View style={styles.grid}>
-        <View style={[styles.card, styles.red]}>
+        <View style={[styles.card, styles.white]}>
           <FontAwesome5 name="walking" size={28} color="#e60404" />
           <Text style={styles.cardTitle}>Pasos</Text>
           <Text style={styles.cardValue}>891</Text>
           <Text style={styles.cardUnit}>steps</Text>
         </View>
-        <View style={[styles.card, styles.gray]}>
+        <View style={[styles.card, styles.white]}>
           <Ionicons name="bed-outline" size={20} color="#e60404" />
           <Text style={styles.cardTitle}>Sueño</Text>
           <Text style={styles.cardValue}>8.12</Text>
           <Text style={styles.cardUnit}>horas</Text>
         </View>
-        <View style={[styles.card, styles.blue]}>
+        <View style={[styles.card, styles.white]}>
           <MaterialCommunityIcons name="fire" size={28} color="#e60404" />
           <Text style={styles.cardTitle}>Calorías</Text>
           <Text style={styles.cardValue}>345</Text>
