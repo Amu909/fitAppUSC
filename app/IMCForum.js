@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
     alignItems: 'center',
-    padding: 20,
+    padding: 82,
   },
   title: {
     fontSize: 24,
