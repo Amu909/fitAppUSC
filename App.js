@@ -7,8 +7,7 @@ import { useFonts, Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/in
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { AuthProvider, useAuth } from './app/AuthContext'; // Asegúrate de tener la ruta correcta
-
+import { AuthProvider, useAuth } from './app/AuthContext';
 // Pantallas
 import Login from './app/login';
 import Home from './app/home';
@@ -16,6 +15,7 @@ import Analytics from './app/Analitics';
 import Workouts from './app/Workouts';
 import Nutrition from './app/Nutrition';
 import IMCForm from './app/IMCForum';
+import WorkoutTimerScreen from './app/WorkoutTimerScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -48,6 +48,7 @@ function BottomTabs() {
       <Tab.Screen name="Nutrición" component={Nutrition} />
       <Tab.Screen name="Calculadora" component={IMCForm} />
 
+
     </Tab.Navigator>
   );
 }
@@ -58,11 +59,16 @@ function RootNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isLoggedIn ? (
+
+      <>
         
         <Stack.Screen name="Main" component={BottomTabs} />
-        
+        <Stack.Screen name="WorkoutTimerScreen" component={WorkoutTimerScreen} />
+        </>
       ) : (
         <Stack.Screen name="Login" component={Login} />
+
+        
       )}
     </Stack.Navigator>
   );

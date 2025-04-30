@@ -87,7 +87,7 @@ export default function AnalyticsDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#white',
   },
   content: {
     padding: 20,
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   date: {
-    color: '#aaa',
+    color: '#white',
     fontSize: 12,
     fontFamily: 'Inter_400Regular',
   },
