@@ -18,25 +18,60 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 *.apk
+*.aab
+*.ipa
 credentials.json
 credentials/
+
+# Firebase (llaves privadas de admin SDK)
+firebase-adminsdk-*.json
+serviceAccount*.json
+*-service-account.json
 
 # Metro
 .metro-health-check*
 
-# debug
+# debug / logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+*.log
+logs/
+*.tmp
+
+# Python
 __pycache__/
+*.pyc
+*.pyo
 .pytest_cache/
 pytest-cache-files-*/
 .build-apk-src/
-
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
 
 # macOS
 .DS_Store
 *.pem
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Editores / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Office lock files
+~$*.xlsx
+~$*.docx
+
+# Claude Code
+.claude/
 
 # local env files
 .env
