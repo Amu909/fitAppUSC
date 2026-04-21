@@ -6,7 +6,11 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "stress:js": "node stress/js_stress.cjs",
+    "stress:py": "python stress/recetas_api_stress.py",
+    "stress": "node stress/js_stress.cjs && python stress/recetas_api_stress.py",
+    "user:set-role": "node scripts/set-user-role.js"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.3.0",
@@ -14,7 +18,7 @@
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/native": "^7.1.6",
     "@react-navigation/native-stack": "^7.3.10",
-    "axios": "^1.9.0",
+    "axios": "^1.13.2",
     "expo": "~52.0.46",
     "expo-font": "~13.0.4",
     "expo-splash-screen": "^0.29.24",
@@ -30,10 +34,15 @@
     "react-native-screens": "~4.4.0",
     "react-native-svg": "15.8.0",
     "react-native-vector-icons": "^10.2.0",
-    "react-native-web": "~0.19.13"
+    "react-native-web": "~0.19.13",
+    "expo-image-picker": "~16.0.6",
+    "expo-auth-session": "~6.0.3",
+    "expo-web-browser": "~14.0.2",
+    "expo-sensors": "~14.0.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "firebase-admin": "^13.4.0"
   },
   "private": true
 }

@@ -2,6 +2,7 @@
   "expo": {
     "name": "fitAppUSC",
     "slug": "fitAppUSC",
+    "scheme": "fitappusc",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,6 +17,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.fitappusc.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -25,7 +27,19 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Permite a FITAPP acceder a los datos de movimiento para sincronizar pasos y actividad."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2d4554f8-94a2-4a0b-8941-be07951ed64a"
+      }
+    },
+    "owner": "luismolina25"
   }
 }

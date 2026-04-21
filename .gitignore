@@ -12,10 +12,14 @@ expo-env.d.ts
 # Native
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.apk
+credentials.json
+credentials/
 
 # Metro
 .metro-health-check*
@@ -24,12 +28,20 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+__pycache__/
+.pytest_cache/
+pytest-cache-files-*/
+.build-apk-src/
+
 
 # macOS
 .DS_Store
 *.pem
 
 # local env files
+.env
+.env.*
+!.env.example
 .env*.local
 
 # typescript

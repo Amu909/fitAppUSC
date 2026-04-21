@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function currentUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserRole() {
+      return isSignedIn() && currentUserDoc().exists()
+        ? currentUserDoc().data.role
+        : null;
+    }
+
+    function isAdmin() {
+      return currentUserRole() == 'admin';
+    }
+
+    function isTrainer() {
+      return currentUserRole() == 'trainer';
+    }
+
+    match /users/{userId} {
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role == 'member';
+
+      allow read: if isOwner(userId) || isAdmin();
+
+      allow update: if isAdmin()
+        || (
+          isOwner(userId)
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.email == resource.data.email
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /routines/{routineId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isTrainer();
+    }
+
+    match /progress/{progressId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() || isTrainer();
+    }
+
+    match /nutrition_plans/{planId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || isTrainer();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
