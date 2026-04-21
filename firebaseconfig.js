@@ -4,16 +4,16 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDWzuIQeiqXrnbzuMpF1lgOOZdH4av64ow",
-  authDomain: "my-fitapp-pro.firebaseapp.com",
-  projectId: "my-fitapp-pro",
-  storageBucket: "my-fitapp-pro.appspot.com", // <-- corregido también aquí
-  messagingSenderId: "532829391167",
-  appId: "1:532829391167:web:2eda4d53137d5557f02b8a"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
 const appfirebase = initializeApp(firebaseConfig);
-const auth = getAuth(appfirebase); // CORRECTO
+const auth = getAuth(appfirebase);
 const db = getFirestore(appfirebase);
 const storage = getStorage(appfirebase);
 
