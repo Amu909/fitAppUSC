@@ -16,22 +16,22 @@ import { useNavigation } from '@react-navigation/native';
 const screenWidth = Dimensions.get('window').width;
 
 const categories = [
-  { id: '1', title: 'BRAZOS', image: require('../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Brazos', subtitle: 'Biceps, triceps y antebrazo' },
-  { id: '2', title: 'RUNNING', image: require('../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Cardio', subtitle: 'Resistencia y capacidad aerobica' },
-  { id: '3', title: 'FUERZA', image: require('../assets/images/WORKOUTS/FUERZA.png'), exerciseGroup: 'Fuerza total', subtitle: 'Trabajo compuesto de cuerpo completo' },
-  { id: '4', title: 'PECHO', image: require('../assets/images/WORKOUTS/PECHO.png'), exerciseGroup: 'Pecho', subtitle: 'Pectoral mayor, menor y empuje' },
-  { id: '5', title: 'ESPALDA', image: require('../assets/images/WORKOUTS/FUERZA.png'), exerciseGroup: 'Espalda', subtitle: 'Dorsal, trapecio y zona media' },
-  { id: '6', title: 'PIERNAS', image: require('../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Piernas', subtitle: 'Cuadriceps, femoral y pantorrilla' },
-  { id: '7', title: 'HOMBROS', image: require('../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Hombros', subtitle: 'Deltoides y estabilidad' },
-  { id: '8', title: 'CORE', image: require('../assets/images/WORKOUTS/HIIT.png'), exerciseGroup: 'Core', subtitle: 'Abdomen, oblicuos y zona lumbar' },
-  { id: '9', title: 'GLUTEOS', image: require('../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Gluteos', subtitle: 'Potencia de cadera y estabilidad' },
+  { id: '1', title: 'BRAZOS', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Brazos', subtitle: 'Biceps, triceps y antebrazo' },
+  { id: '2', title: 'RUNNING', image: require('../../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Cardio', subtitle: 'Resistencia y capacidad aerobica' },
+  { id: '3', title: 'FUERZA', image: require('../../assets/images/WORKOUTS/FUERZA.png'), exerciseGroup: 'Fuerza total', subtitle: 'Trabajo compuesto de cuerpo completo' },
+  { id: '4', title: 'PECHO', image: require('../../assets/images/WORKOUTS/PECHO.png'), exerciseGroup: 'Pecho', subtitle: 'Pectoral mayor, menor y empuje' },
+  { id: '5', title: 'ESPALDA', image: require('../../assets/images/WORKOUTS/FUERZA.png'), exerciseGroup: 'Espalda', subtitle: 'Dorsal, trapecio y zona media' },
+  { id: '6', title: 'PIERNAS', image: require('../../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Piernas', subtitle: 'Cuadriceps, femoral y pantorrilla' },
+  { id: '7', title: 'HOMBROS', image: require('../../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Hombros', subtitle: 'Deltoides y estabilidad' },
+  { id: '8', title: 'CORE', image: require('../../assets/images/WORKOUTS/HIIT.png'), exerciseGroup: 'Core', subtitle: 'Abdomen, oblicuos y zona lumbar' },
+  { id: '9', title: 'GLUTEOS', image: require('../../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Gluteos', subtitle: 'Potencia de cadera y estabilidad' },
 ];
 
 const programs = [
-  { id: '1', title: 'Cross-Training to 5K', trainer: 'with Meg', image: require('../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Cardio' },
-  { id: '2', title: 'HIIT Burnout', trainer: 'with Akeem', image: require('../assets/images/WORKOUTS/HIIT.png'), exerciseGroup: 'Core' },
-  { id: '3', title: 'Upper Body Builder', trainer: 'with Sofia', image: require('../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Brazos' },
-  { id: '4', title: 'Leg Power', trainer: 'with Daniel', image: require('../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Piernas' },
+  { id: '1', title: 'Cross-Training to 5K', trainer: 'with Meg', image: require('../../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Cardio' },
+  { id: '2', title: 'HIIT Burnout', trainer: 'with Akeem', image: require('../../assets/images/WORKOUTS/HIIT.png'), exerciseGroup: 'Core' },
+  { id: '3', title: 'Upper Body Builder', trainer: 'with Sofia', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Brazos' },
+  { id: '4', title: 'Leg Power', trainer: 'with Daniel', image: require('../../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Piernas' },
 ];
 
 const matchesSearch = (item, term) => {

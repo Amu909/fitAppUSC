@@ -36,7 +36,7 @@ const Home = () => {
       <Text style={styles.secondaryTitle}>AT HOME OR AT THE GYM</Text>
 
       <Image
-        source={require('../assets/images/fitgirl.png')}
+        source={require('../../assets/images/fitgirl.png')}
         style={styles.image}
         resizeMode="contain"
       />
