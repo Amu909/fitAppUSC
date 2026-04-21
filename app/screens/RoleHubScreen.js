@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 const ROLE_COPY = {
   admin: {

@@ -7,21 +7,21 @@ import { useFonts, Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/in
 import { ActivityIndicator, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { AuthProvider, useAuth } from './app/AuthContext';
+import { AuthProvider, useAuth } from './app/context/AuthContext';
 // Pantallas
-import Login from './app/login';
-import Home from './app/home';
-import Analytics from './app/Analitics';
-import Workouts from './app/Workouts';
-import Nutrition from './app/Nutrition';
-import IMCForm from './app/IMCForum';
-import WorkoutTimerScreen from './app/WorkoutTimerScreen';
-import ChatbotScreen from './app/chatbot_screen_native';
-import WorkoutExercisesScreen from './app/WorkoutExercisesScreen';
-import WorkoutExerciseDetailScreen from './app/WorkoutExerciseDetailScreen';
-import ManageRolesScreen from './app/ManageRolesScreen';
-import TopAppBar from './app/TopAppBar';
-import ProfileScreen from './app/ProfileScreen';
+import Login from './app/screens/login';
+import Home from './app/screens/home';
+import Analytics from './app/screens/Analitics';
+import Workouts from './app/screens/Workouts';
+import Nutrition from './app/screens/Nutrition';
+import IMCForm from './app/screens/IMCForum';
+import WorkoutTimerScreen from './app/screens/WorkoutTimerScreen';
+import ChatbotScreen from './app/screens/chatbot_screen_native';
+import WorkoutExercisesScreen from './app/screens/WorkoutExercisesScreen';
+import WorkoutExerciseDetailScreen from './app/screens/WorkoutExerciseDetailScreen';
+import ManageRolesScreen from './app/screens/ManageRolesScreen';
+import TopAppBar from './app/components/TopAppBar';
+import ProfileScreen from './app/screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();

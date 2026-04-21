@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebaseconfig';
+import { auth, db } from '../../firebaseconfig';
 
 const BOOTSTRAP_ADMIN_EMAIL = 'admin@fitapp.com';
 const normalizeEmail = (value) => (value || '').trim().toLowerCase();

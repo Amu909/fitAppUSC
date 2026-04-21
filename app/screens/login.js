@@ -28,8 +28,8 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { auth, db, storage } from '../firebaseconfig';
-import { useAuth } from './AuthContext';
+import { auth, db, storage } from '../../firebaseconfig';
+import { useAuth } from '../context/AuthContext';
 
 WebBrowser.maybeCompleteAuthSession();
 

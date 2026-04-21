@@ -3,7 +3,7 @@ import { Dimensions, Image, Platform, ScrollView, StyleSheet, Text, View } from 
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProgressChart } from 'react-native-chart-kit';
 import { Pedometer } from 'expo-sensors';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 const screenWidth = Dimensions.get('window').width;
 

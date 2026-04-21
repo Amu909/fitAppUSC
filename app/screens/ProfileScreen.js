@@ -15,8 +15,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { deleteUser } from 'firebase/auth';
 import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { db, storage } from '../firebaseconfig';
-import { useAuth } from './AuthContext';
+import { db, storage } from '../../firebaseconfig';
+import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 
 const createProfileForm = (profile) => ({

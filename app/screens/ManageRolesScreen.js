@@ -10,8 +10,8 @@ import {
   View,
 } from 'react-native';
 import { collection, doc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
-import { db } from '../firebaseconfig';
-import { useAuth } from './AuthContext';
+import { db } from '../../firebaseconfig';
+import { useAuth } from '../context/AuthContext';
 
 const AVAILABLE_ROLES = ['member', 'trainer', 'admin'];
 
