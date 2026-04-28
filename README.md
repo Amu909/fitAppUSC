@@ -156,7 +156,7 @@ uvicorn recetas_api:app --reload
 **Luis Molina** — [@Amu909](https://github.com/Amu909)  
 Universidad Santiago de Cali (USC)
 
-**Juan Felipe Collazos** — [@Amu909](https://github.com/Collazos96)  
+**Juan Felipe Collazos** — [@Collazos96](https://github.com/Collazos96)  
 Universidad Santiago de Cali (USC)
 
 ---
