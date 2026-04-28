@@ -21,7 +21,7 @@
 | Capa | Tecnología |
 |------|-----------|
 | Framework móvil | React Native 0.76 + Expo 52 |
-| Lenguaje | JavaScript (99%) / Python (1%) |
+| Lenguaje | JavaScript (75%) / Python (24%) |
 | Backend / API | FastAPI (Python) |
 | Base de datos | Firebase Firestore |
 | Autenticación | Firebase Auth |
