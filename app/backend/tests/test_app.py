@@ -191,6 +191,62 @@ class ApiEndpointTests(unittest.TestCase):
         self.assertTrue(any("hiit" in item.lower() for item in suggestions))
 
     @patch.object(backend_app.chatbot, "send_message", new_callable=AsyncMock)
+    def test_module_assistant_uses_profile_and_module_context(self, send_message_mock):
+        send_message_mock.return_value = "Rutina personalizada"
+
+        response = self.client.post(
+            "/ai/module-assistant",
+            json={
+                "module": "Rutinas",
+                "intent": "Genera una rutina semanal",
+                "user_profile": {"goal": "gain_muscle", "isVegetarian": True},
+                "module_data": {"grupo": "Piernas", "dias": 4},
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["insight"], "Rutina personalizada")
+        awaited_kwargs = send_message_mock.await_args.kwargs
+        self.assertEqual(
+            awaited_kwargs["user_profile"],
+            {"goal": "gain_muscle", "isVegetarian": True},
+        )
+        self.assertIn("Rutinas", awaited_kwargs["user_message"])
+        self.assertIn('"grupo": "Piernas"', awaited_kwargs["user_message"])
+
+    def test_integrated_nutrition_plan_uses_food_dataset(self):
+        response = self.client.post(
+            "/generate-comprehensive-plan",
+            json={
+                "weight": 74,
+                "height": 176,
+                "age": 30,
+                "gender": "male",
+                "activity_level": "moderate",
+                "goal": "athletic",
+                "allergies": [],
+                "preferences": [],
+                "medical_conditions": [],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("desayuno", payload["plan_alimentario"])
+        self.assertGreater(payload["dataset"]["alimentos_evaluados"], 0)
+        self.assertEqual(payload["dataset"]["fuente"], "Food_and_Nutrition.csv")
+        self.assertIn("contexto_dieta", payload)
+        self.assertIn("enfoque_principal", payload["contexto_dieta"])
+
+    def test_food_catalog_returns_dataset_items(self):
+        response = self.client.get("/nutrition/foods", params={"limit": 5})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertLessEqual(len(payload["foods"]), 5)
+        self.assertIn("categories", payload)
+
+    @patch.object(backend_app.chatbot, "send_message", new_callable=AsyncMock)
     def test_analyze_routine_endpoint_builds_analysis_prompt(self, send_message_mock):
         send_message_mock.return_value = "Buen balance"
         routine = {"days": 4, "focus": "cardio"}
@@ -225,6 +281,16 @@ class ApiEndpointTests(unittest.TestCase):
         payload = response.json()
         self.assertEqual(payload["status"], "Chatbot Nutricional funcionando")
         self.assertIn("Rutinas de ejercicio", payload["capabilities"])
+        self.assertIn("ai_configured", payload)
+
+    def test_ai_status_endpoint_reports_configuration(self):
+        response = self.client.get("/ai/status")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["provider"], "Groq")
+        self.assertIn("configured", payload)
+        self.assertIn("/chat", payload["available_endpoints"])
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as SplashScreen from 'expo-splash-screen';
@@ -8,7 +8,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthProvider, useAuth } from './app/AuthContext';
-// Pantallas
+import { ThemeProvider, useTheme } from './app/ThemeContext';
 import Login from './app/login';
 import Home from './app/home';
 import Analytics from './app/Analitics';
@@ -29,6 +29,8 @@ const Tab = createBottomTabNavigator();
 SplashScreen.preventAutoHideAsync();
 
 function BottomTabs() {
+  const { theme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -39,9 +41,9 @@ function BottomTabs() {
           height: 56,
           paddingTop: 3,
           paddingBottom: 3,
-          backgroundColor: '#ffffff',
+          backgroundColor: theme.surface,
           borderTopWidth: 1,
-          borderTopColor: '#eef2f7',
+          borderTopColor: theme.borderSoft,
         },
         tabBarItemStyle: {
           justifyContent: 'center',
@@ -53,25 +55,28 @@ function BottomTabs() {
           marginTop: -2,
           paddingBottom: 1,
         },
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ color }) => {
           let iconName;
 
           if (route.name === 'Home') iconName = 'home';
-          else if (route.name === 'Mis Analíticas') iconName = 'bar-chart';
+          else if (route.name === 'Mis Analiticas') iconName = 'bar-chart';
           else if (route.name === 'Rutinas') iconName = 'fitness';
-          else if (route.name === 'Nutrición') iconName = 'restaurant';
+          else if (route.name === 'Nutricion') iconName = 'restaurant';
           else if (route.name === 'Chatbot') iconName = 'flash-outline';
 
           return <Ionicons name={iconName} size={20} color={color} />;
         },
-        tabBarActiveTintColor: '#e60404',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.tabInactive,
+        sceneStyle: {
+          backgroundColor: theme.background,
+        },
       })}
     >
       <Tab.Screen name="Home" component={Home} />
-      <Tab.Screen name="Mis Analíticas" component={Analytics} />
+      <Tab.Screen name="Mis Analiticas" component={Analytics} />
       <Tab.Screen name="Rutinas" component={Workouts} />
-      <Tab.Screen name="Nutrición" component={Nutrition} />
+      <Tab.Screen name="Nutricion" component={Nutrition} />
       <Tab.Screen name="Chatbot" component={ChatbotScreen} />
       <Tab.Screen
         name="Perfil"
@@ -87,12 +92,13 @@ function BottomTabs() {
 
 function RootNavigator() {
   const { isLoggedIn, authLoading } = useAuth();
+  const { theme } = useTheme();
 
   if (authLoading) {
     return (
-      <View style={styles.loadingScreen}>
-        <ActivityIndicator size="large" color="#e60404" />
-        <Text style={styles.loadingText}>Cargando sesión y permisos...</Text>
+      <View style={[styles.loadingScreen, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+        <Text style={[styles.loadingText, { color: theme.textMuted }]}>Cargando sesion y permisos...</Text>
       </View>
     );
   }
@@ -130,6 +136,32 @@ function RootNavigator() {
   );
 }
 
+function AppShell() {
+  const { theme, isDark } = useTheme();
+
+  const navigationTheme = React.useMemo(
+    () => ({
+      ...(isDark ? DarkTheme : DefaultTheme),
+      colors: {
+        ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+        background: theme.background,
+        card: theme.surface,
+        text: theme.text,
+        border: theme.borderSoft,
+        primary: theme.primary,
+        notification: theme.primary,
+      },
+    }),
+    [isDark, theme]
+  );
+
+  return (
+    <NavigationContainer theme={navigationTheme}>
+      <RootNavigator />
+    </NavigationContainer>
+  );
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
@@ -143,11 +175,11 @@ export default function App() {
   if (!fontsLoaded) return <View />;
 
   return (
-    <AuthProvider>
-      <NavigationContainer>
-        <RootNavigator />
-      </NavigationContainer>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
@@ -156,11 +188,9 @@ const styles = {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
   },
   loadingText: {
     marginTop: 14,
-    color: '#374151',
     fontSize: 15,
     fontWeight: '600',
   },

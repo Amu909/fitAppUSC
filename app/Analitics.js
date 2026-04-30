@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Dimensions, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Dimensions, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ProgressChart } from 'react-native-chart-kit';
 import { Pedometer } from 'expo-sensors';
 import { useAuth } from './AuthContext';
+import { useTheme } from './ThemeContext';
+import AIAssistantPanel from './AIAssistantPanel';
+import { requestModuleInsight } from './utils/aiClient';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -47,9 +50,12 @@ const progressValue = (value, goal) => Math.min(1, value / goal);
 
 export default function AnalyticsDashboard() {
   const { userProfile } = useAuth();
+  const { theme, isDark } = useTheme();
   const [stepCount, setStepCount] = useState(0);
   const [pedometerReady, setPedometerReady] = useState(false);
   const [pedometerSource, setPedometerSource] = useState('estimado');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiInsight, setAiInsight] = useState('');
 
   const firstName = userProfile?.fullName?.trim()?.split(' ')?.[0] || 'Usuario';
   const today = useMemo(() => formatToday(), []);
@@ -129,10 +135,10 @@ export default function AnalyticsDashboard() {
   };
 
   const chartConfig = {
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
-    color: () => '#e60404',
-    labelColor: () => '#6b7280',
+    backgroundGradientFrom: theme.surface,
+    backgroundGradientTo: theme.surface,
+    color: () => theme.primary,
+    labelColor: () => theme.textMuted,
     strokeWidth: 14,
   };
 
@@ -195,35 +201,59 @@ export default function AnalyticsDashboard() {
     },
   ];
 
+  const handleAnalyticsAI = async () => {
+    setAiLoading(true);
+    try {
+      const result = await requestModuleInsight({
+        module: 'Analiticas',
+        intent: 'Analiza mis metricas actuales y dame prioridades de entrenamiento, recuperacion, hidratacion y nutricion para hoy.',
+        userProfile,
+        moduleData: {
+          fecha: today,
+          fuente_pasos: pedometerSource,
+          logro_diario: achievementScore,
+          metricas: wearable,
+          recuperacion: Math.max(62, 92 - wearable.stress),
+          energia: Math.min(97, 68 + wearable.activeMinutes / 3),
+        },
+      });
+      setAiInsight(result.insight);
+    } catch (error) {
+      Alert.alert('IA no disponible', 'No fue posible generar el analisis en este momento.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.heroCard}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
+      <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft, shadowOpacity: isDark ? 0 : 0.08, elevation: isDark ? 0 : 6 }]}>
         <View style={styles.heroTop}>
           {userProfile?.photoURL ? (
             <Image source={{ uri: userProfile.photoURL }} style={styles.avatar} />
           ) : (
-            <View style={styles.avatarFallback}>
+            <View style={[styles.avatarFallback, { backgroundColor: theme.primary }]}>
               <Text style={styles.avatarFallbackText}>{firstName[0]?.toUpperCase() || 'U'}</Text>
             </View>
           )}
 
           <View style={styles.heroCopy}>
-            <Text style={styles.date}>{today}</Text>
-            <Text style={styles.greeting}>Buen dia, {firstName}</Text>
-            <Text style={styles.metaCopy}>
+            <Text style={[styles.date, { color: theme.textMuted }]}>{today}</Text>
+            <Text style={[styles.greeting, { color: theme.text }]}>Buen dia, {firstName}</Text>
+            <Text style={[styles.metaCopy, { color: theme.textMuted }]}>
               {pedometerReady
                 ? `Pasos sincronizados desde ${pedometerSource}.`
                 : 'Mostrando datos derivados del perfil mientras se conecta un wearable.'}
             </Text>
           </View>
 
-          <View style={styles.scoreBadge}>
+          <View style={[styles.scoreBadge, { backgroundColor: theme.primary }]}>
             <Ionicons name="trophy-outline" size={14} color="#fff" />
             <Text style={styles.scoreText}>{achievementScore}</Text>
           </View>
         </View>
 
-        <View style={styles.ringCard}>
+        <View style={[styles.ringCard, { backgroundColor: theme.surfaceAlt, borderColor: isDark ? theme.border : '#fff1f2' }]}>
           <ProgressChart
             data={chartData}
             width={screenWidth - 88}
@@ -237,23 +267,32 @@ export default function AnalyticsDashboard() {
       </View>
 
       <View style={styles.summaryRow}>
-        <View style={styles.summaryPill}>
-          <Text style={styles.summaryLabel}>Recuperacion</Text>
+        <View style={[styles.summaryPill, { backgroundColor: isDark ? theme.surfaceAlt : '#161933' }]}>
+          <Text style={[styles.summaryLabel, { color: isDark ? theme.textSoft : '#ffffff' }]}>Recuperacion</Text>
           <Text style={styles.summaryValue}>{Math.max(62, 92 - wearable.stress)}%</Text>
         </View>
-        <View style={styles.summaryPill}>
-          <Text style={styles.summaryLabel}>Energia</Text>
+        <View style={[styles.summaryPill, { backgroundColor: isDark ? theme.surfaceAlt : '#161933' }]}>
+          <Text style={[styles.summaryLabel, { color: isDark ? theme.textSoft : '#ffffff' }]}>Energia</Text>
           <Text style={styles.summaryValue}>{Math.min(97, 68 + wearable.activeMinutes / 3)}%</Text>
         </View>
       </View>
 
+      <AIAssistantPanel
+        title="Analisis inteligente"
+        subtitle="Cruza tus metricas del dia con tu perfil para sugerir prioridades."
+        buttonLabel="Analizar mis datos"
+        loading={aiLoading}
+        insight={aiInsight}
+        onPress={handleAnalyticsAI}
+      />
+
       <View style={styles.grid}>
         {cards.map((card) => (
-          <View key={card.key} style={styles.metricCard}>
-            <View style={styles.metricIconWrap}>{card.icon}</View>
-            <Text style={styles.metricTitle}>{card.title}</Text>
-            <Text style={styles.metricValue}>{card.value}</Text>
-            <Text style={styles.metricUnit}>{card.unit}</Text>
+          <View key={card.key} style={[styles.metricCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft, shadowOpacity: isDark ? 0 : 0.05, elevation: isDark ? 0 : 3 }]}>
+            <View style={[styles.metricIconWrap, { backgroundColor: theme.primarySoft }]}>{card.icon}</View>
+            <Text style={[styles.metricTitle, { color: theme.text }]}>{card.title}</Text>
+            <Text style={[styles.metricValue, { color: theme.text }]}>{card.value}</Text>
+            <Text style={[styles.metricUnit, { color: theme.textMuted }]}>{card.unit}</Text>
           </View>
         ))}
       </View>

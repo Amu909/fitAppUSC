@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useTheme } from './ThemeContext';
 
 const WorkoutExerciseDetailScreen = ({ route, navigation }) => {
-  const { exercise, fallbackImage } = route.params;
+  const { exercise, fallbackImage, group } = route.params;
+  const { theme, isDark } = useTheme();
   const heroOpacity = useRef(new Animated.Value(0)).current;
   const heroTranslate = useRef(new Animated.Value(18)).current;
   const pulse = useRef(new Animated.Value(0)).current;
@@ -35,14 +37,15 @@ const WorkoutExerciseDetailScreen = ({ route, navigation }) => {
   });
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.kicker}>Detalle del ejercicio</Text>
-      <Text style={styles.title}>{exercise.name}</Text>
-      <Text style={styles.subtitle}>{exercise.description}</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
+      <Text style={[styles.kicker, { color: theme.primary }]}>Detalle del ejercicio</Text>
+      <Text style={[styles.title, { color: theme.text }]}>{exercise.name}</Text>
+      <Text style={[styles.subtitle, { color: theme.textMuted }]}>{exercise.description}</Text>
 
       <Animated.View
         style={[
           styles.heroCard,
+          { backgroundColor: theme.surface, borderColor: theme.border },
           {
             opacity: heroOpacity,
             transform: [{ translateY: heroTranslate }],
@@ -52,24 +55,28 @@ const WorkoutExerciseDetailScreen = ({ route, navigation }) => {
         <Animated.View style={{ transform: [{ scale: mediaScale }] }}>
           <Image source={exercise.image || fallbackImage} style={styles.heroImage} resizeMode="contain" />
         </Animated.View>
-        <Text style={styles.heroCaption}>
+        <Text style={[styles.heroCaption, { color: theme.textMuted }]}>
           Vista animada de referencia. Si despues me compartes GIFs propios o con permiso de uso,
           esta pantalla ya queda lista para mostrarlos.
         </Text>
       </Animated.View>
 
-      <View style={styles.infoCard}>
+      <View style={[styles.infoCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Enfoque</Text>
-          <Text style={styles.infoValue}>{exercise.focus}</Text>
+          <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Grupo muscular</Text>
+          <Text style={[styles.infoValue, { color: theme.text }]}>{group || 'General'}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Volumen</Text>
-          <Text style={styles.infoValue}>{exercise.reps}</Text>
+          <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Enfoque</Text>
+          <Text style={[styles.infoValue, { color: theme.text }]}>{exercise.focus}</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Nivel</Text>
-          <Text style={styles.infoValue}>{exercise.level}</Text>
+          <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Volumen</Text>
+          <Text style={[styles.infoValue, { color: theme.text }]}>{exercise.reps}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Nivel</Text>
+          <Text style={[styles.infoValue, { color: theme.text }]}>{exercise.level}</Text>
         </View>
       </View>
 

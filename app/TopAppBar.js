@@ -1,13 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from './AuthContext';
+import { useTheme } from './ThemeContext';
 
 export default function TopAppBar() {
   const navigation = useNavigation();
-  const { userProfile } = useAuth();
+  const { userProfile, currentUser } = useAuth();
+  const { theme, isDark, toggleTheme } = useTheme();
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const firstName = userProfile?.fullName?.trim()?.split(' ')?.[0] || 'Usuario';
+  const avatarUrl = userProfile?.photoURL || currentUser?.photoURL || '';
+
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [avatarUrl]);
   const initials = userProfile?.fullName
     ? userProfile.fullName
         .split(' ')
@@ -18,17 +26,25 @@ export default function TopAppBar() {
     : 'U';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.surface, borderBottomColor: theme.borderSoft }]}>
       <View style={styles.brandRow}>
         <TouchableOpacity
           style={styles.menuButton}
           activeOpacity={0.85}
           onPress={() => navigation.navigate('Main', { screen: 'Home' })}
         >
-          <Ionicons name="menu" size={24} color="#4b5563" />
+          <Ionicons name="menu" size={24} color={theme.textMuted} />
         </TouchableOpacity>
-        <Text style={styles.brandText}>FITAPP</Text>
+        <Text style={[styles.brandText, { color: theme.primary }]}>FITAPP</Text>
       </View>
+
+      <TouchableOpacity
+        style={[styles.themeButton, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
+        activeOpacity={0.85}
+        onPress={toggleTheme}
+      >
+        <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={16} color={theme.text} />
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.profileButton}
@@ -36,15 +52,19 @@ export default function TopAppBar() {
         onPress={() => navigation.navigate('Main', { screen: 'Perfil' })}
       >
         <View style={styles.profileMeta}>
-          <Text style={styles.profileLabel}>Mi perfil</Text>
-          <Text style={styles.profileName} numberOfLines={1}>
+          <Text style={[styles.profileLabel, { color: theme.textSoft }]}>Mi perfil</Text>
+          <Text style={[styles.profileName, { color: theme.text }]} numberOfLines={1}>
             {firstName}
           </Text>
         </View>
-        {userProfile?.photoURL ? (
-          <Image source={{ uri: userProfile.photoURL }} style={styles.avatar} />
+        {avatarUrl && !avatarFailed ? (
+          <Image
+            source={{ uri: avatarUrl }}
+            style={styles.avatar}
+            onError={() => setAvatarFailed(true)}
+          />
         ) : (
-          <View style={styles.avatarFallback}>
+          <View style={[styles.avatarFallback, { backgroundColor: theme.primary }]}>
             <Text style={styles.initialsText}>{initials}</Text>
           </View>
         )}
@@ -85,6 +105,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 2,
+  },
+  themeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   profileMeta: {
     marginRight: 10,
