@@ -184,7 +184,7 @@ Responde de manera profesional, empática y siempre con base científica."""
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "llama-3.3-70b-versatile",  # Modelo más potente de Groq
+                        "model": GROQ_MODEL,
                         "messages": messages,
                         "temperature": 0.7,
                         "max_tokens": 1000,
@@ -394,6 +394,135 @@ def filter_foods_for_profile(foods: List[Dict[str, Any]], request: NutritionPlan
 
     return filtered or foods
 
+def food_matches_role(food: Dict[str, Any], role: str) -> bool:
+    category = food["category"].lower()
+
+    if role == "protein":
+        return category in {"meat", "dairy"} or food["protein"] >= 18
+    if role == "complex_carb":
+        return category in {"grains", "vegetables"} or (food["carbs"] >= 18 and food["fiber"] >= 2)
+    if role == "produce":
+        return category in {"fruits", "vegetables"}
+    if role == "healthy_fat":
+        return food["fat"] >= 10 and food["sugars"] <= 18
+    return False
+
+def score_food_for_role(food: Dict[str, Any], role: str, target_calories: float) -> tuple:
+    calorie_gap = abs(food["calories_per_100g"] - target_calories)
+    category = food["category"].lower()
+
+    if role == "protein":
+        preferred_category = 0 if category in {"meat", "dairy"} else 1
+        return (
+            preferred_category,
+            -food["protein"],
+            food["sugars"],
+            calorie_gap,
+        )
+
+    if role == "complex_carb":
+        preferred_category = 0 if category == "grains" else 1 if category == "vegetables" else 2
+        return (
+            preferred_category,
+            -food["fiber"],
+            -food["carbs"],
+            food["sugars"],
+            calorie_gap,
+        )
+
+    if role == "produce":
+        preferred_category = 0 if category == "vegetables" else 1 if category == "fruits" else 2
+        return (
+            preferred_category,
+            food["sugars"],
+            -food["fiber"],
+            calorie_gap,
+        )
+
+    if role == "healthy_fat":
+        return (
+            food["sugars"],
+            -food["fat"],
+            -food["fiber"],
+            calorie_gap,
+        )
+
+    return (calorie_gap,)
+
+def pick_food_by_role(
+    meal_foods: List[Dict[str, Any]],
+    selected_names: set,
+    role: str,
+    target_calories: float,
+    excluded_categories: Optional[set] = None,
+) -> Optional[Dict[str, Any]]:
+    candidates = [
+        food for food in meal_foods
+        if food["food"] not in selected_names
+        and food_matches_role(food, role)
+        and food["category"].lower() not in (excluded_categories or set())
+    ]
+    if not candidates:
+        return None
+
+    return min(candidates, key=lambda food: score_food_for_role(food, role, target_calories))
+
+def fallback_meal_foods(meal_foods: List[Dict[str, Any]], count: int, target_calories: float) -> List[Dict[str, Any]]:
+    ranked = sorted(
+        meal_foods,
+        key=lambda food: (
+            food["category"].lower() in {"beverages", "snacks"},
+            abs(food["calories_per_100g"] - target_calories),
+            food["sugars"],
+            -food["protein"],
+            -food["fiber"],
+        )
+    )
+    selected = []
+    seen_names = set()
+    for food in ranked:
+        if food["food"] in seen_names:
+            continue
+        selected.append(food)
+        seen_names.add(food["food"])
+        if len(selected) == count:
+            break
+    return selected
+
+def build_balanced_meal(
+    meal_foods: List[Dict[str, Any]],
+    target_calories: float,
+    roles: List[str],
+    excluded_categories: Optional[set] = None,
+) -> List[Dict[str, Any]]:
+    selected = []
+    selected_names = set()
+
+    for role in roles:
+        choice = pick_food_by_role(
+            meal_foods,
+            selected_names,
+            role,
+            target_calories,
+            excluded_categories=excluded_categories,
+        )
+        if choice:
+            selected.append(choice)
+            selected_names.add(choice["food"])
+
+    if len(selected) < 3:
+        for food in fallback_meal_foods(meal_foods, 6, target_calories):
+            if food["food"] in selected_names:
+                continue
+            if excluded_categories and food["category"].lower() in excluded_categories and len(selected) < 2:
+                continue
+            selected.append(food)
+            selected_names.add(food["food"])
+            if len(selected) == 3:
+                break
+
+    return selected[:3]
+
 def build_meal_plan(foods: List[Dict[str, Any]], calories: float) -> Dict[str, List[Dict[str, Any]]]:
     meal_config = {
         "desayuno": ("Breakfast", 0.25),
@@ -401,23 +530,43 @@ def build_meal_plan(foods: List[Dict[str, Any]], calories: float) -> Dict[str, L
         "merienda": ("Snack", 0.15),
         "cena": ("Dinner", 0.25),
     }
+    meal_templates = {
+        "desayuno": {
+            "roles": ["protein", "complex_carb", "produce"],
+            "excluded_categories": {"beverages"},
+        },
+        "almuerzo": {
+            "roles": ["protein", "complex_carb", "produce"],
+            "excluded_categories": {"beverages", "snacks"},
+        },
+        "merienda": {
+            "roles": ["protein", "produce", "healthy_fat"],
+            "excluded_categories": {"beverages"},
+        },
+        "cena": {
+            "roles": ["protein", "complex_carb", "produce"],
+            "excluded_categories": {"beverages", "snacks"},
+        },
+    }
     by_meal = {}
 
     for meal_name, (dataset_meal, ratio) in meal_config.items():
         meal_foods = [food for food in foods if food["meal_type"].lower() == dataset_meal.lower()]
         if not meal_foods:
             meal_foods = foods
+        target_calories = calories * ratio / 3
+        template = meal_templates[meal_name]
 
-        meal_foods = sorted(
+        selected = build_balanced_meal(
             meal_foods,
-            key=lambda food: (
-                abs(food["calories_per_100g"] - calories * ratio / 3),
-                food["sugars"],
-                -food["protein"],
-                -food["fiber"],
-            )
+            target_calories,
+            template["roles"],
+            excluded_categories=template["excluded_categories"],
         )
-        by_meal[meal_name] = meal_foods[:3]
+        if len(selected) < 3:
+            selected = fallback_meal_foods(meal_foods, 3, target_calories)
+
+        by_meal[meal_name] = selected
 
     return by_meal
 

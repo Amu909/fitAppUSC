@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from './AuthContext';
+import { saveWorkoutSession } from './utils/activityLog';
 
 const WorkoutTimerScreen = ({ route }) => {
   const { type } = route.params;
@@ -8,6 +10,7 @@ const WorkoutTimerScreen = ({ route }) => {
   const [isRunning, setIsRunning] = useState(false);
   const intervalRef = useRef(null);
   const navigation = useNavigation();
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     if (isRunning) {
@@ -32,9 +35,22 @@ const WorkoutTimerScreen = ({ route }) => {
     setSeconds(0);
   };
 
-  const handleEnd = () => {
-    navigation.navigate('Main', { screen: 'Home' });
+  const handleEnd = async () => {
+    setIsRunning(false);
 
+    if (currentUser?.uid && seconds > 0) {
+      try {
+        await saveWorkoutSession({
+          userId: currentUser.uid,
+          type,
+          durationSeconds: seconds,
+        });
+      } catch (error) {
+        console.error('No fue posible guardar la sesion', error);
+      }
+    }
+
+    navigation.navigate('Main', { screen: 'Home' });
   };
 
   return (

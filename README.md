@@ -106,6 +106,28 @@ npm run ios
 npm run web
 ```
 
+### 5. Activar la IA con Groq
+
+1. Crea un archivo `.env` en la raiz del proyecto.
+2. Define tu credencial de Groq y, si quieres fijar manualmente la URL del backend para Expo, agrega tambien la variable publica:
+
+```env
+GROQ_API_KEY=tu_api_key_real_de_groq
+GROQ_MODEL=llama-3.3-70b-versatile
+EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+```
+
+3. Inicia backend y frontend juntos con:
+
+```bash
+npm run dev:local
+```
+
+Notas:
+- En web, la app usa automaticamente el host actual con puerto `8000`.
+- En Android emulador, si no defines `EXPO_PUBLIC_API_BASE_URL`, la app usa `http://10.0.2.2:8000`.
+- En un dispositivo fisico, define `EXPO_PUBLIC_API_BASE_URL` con la IP LAN de tu computador, por ejemplo `http://192.168.1.20:8000`.
+
 ---
 
 ## 🍽️ API de Nutrición (FastAPI)

@@ -1,7 +1,18 @@
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import axios from 'axios';
 
 const explicitBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+
+function resolveHostFromScriptUrl() {
+  const scriptUrl = NativeModules?.SourceCode?.scriptURL;
+
+  if (!scriptUrl) {
+    return null;
+  }
+
+  const match = scriptUrl.match(/^https?:\/\/([^/:]+)(?::\d+)?/i);
+  return match?.[1] || null;
+}
 
 function resolveApiBaseUrl() {
   if (explicitBaseUrl) {
@@ -13,7 +24,17 @@ function resolveApiBaseUrl() {
     return `http://${host}:8000`;
   }
 
-  return 'http://10.10.39.18:8000';
+  const detectedHost = resolveHostFromScriptUrl();
+
+  if (detectedHost && detectedHost !== 'localhost' && detectedHost !== '127.0.0.1') {
+    return `http://${detectedHost}:8000`;
+  }
+
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:8000';
+  }
+
+  return 'http://127.0.0.1:8000';
 }
 
 export const AI_API_BASE_URL = resolveApiBaseUrl();

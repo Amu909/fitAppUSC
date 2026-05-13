@@ -238,6 +238,59 @@ class ApiEndpointTests(unittest.TestCase):
         self.assertIn("contexto_dieta", payload)
         self.assertIn("enfoque_principal", payload["contexto_dieta"])
 
+    def test_integrated_nutrition_plan_balances_main_meals_by_role(self):
+        response = self.client.post(
+            "/generate-comprehensive-plan",
+            json={
+                "weight": 74,
+                "height": 176,
+                "age": 30,
+                "gender": "male",
+                "activity_level": "moderate",
+                "goal": "maintain",
+                "allergies": [],
+                "preferences": [],
+                "medical_conditions": [],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        meals = response.json()["plan_alimentario"]
+
+        for meal_name in ("desayuno", "almuerzo", "cena"):
+            foods = meals[meal_name]
+            categories = {item["category"].lower() for item in foods}
+
+            self.assertTrue(
+                any(backend_app.food_matches_role(item, "protein") for item in foods),
+                f"{meal_name} debe incluir una fuente proteica",
+            )
+            self.assertTrue(
+                any(backend_app.food_matches_role(item, "complex_carb") for item in foods),
+                f"{meal_name} debe incluir un carbohidrato complejo o vegetal estructural",
+            )
+            self.assertFalse(
+                categories.issubset({"fruits", "beverages"}),
+                f"{meal_name} no debe quedar compuesto solo por frutas o bebidas",
+            )
+
+    def test_build_meal_plan_avoids_snack_or_beverage_only_lunch(self):
+        foods = [
+            {"food": "Apple Juice", "category": "Beverages", "meal_type": "Lunch", "calories_per_100g": 120, "protein": 1, "carbs": 24, "fat": 0, "fiber": 0, "sugars": 20, "sodium": 12, "cholesterol": 0, "water_intake": 200},
+            {"food": "Cookies", "category": "Snacks", "meal_type": "Lunch", "calories_per_100g": 210, "protein": 3, "carbs": 30, "fat": 8, "fiber": 1, "sugars": 18, "sodium": 130, "cholesterol": 0, "water_intake": 30},
+            {"food": "Chicken Breast", "category": "Meat", "meal_type": "Lunch", "calories_per_100g": 180, "protein": 31, "carbs": 0, "fat": 4, "fiber": 0, "sugars": 0, "sodium": 90, "cholesterol": 70, "water_intake": 0},
+            {"food": "Rice", "category": "Grains", "meal_type": "Lunch", "calories_per_100g": 130, "protein": 3, "carbs": 28, "fat": 1, "fiber": 2, "sugars": 0, "sodium": 5, "cholesterol": 0, "water_intake": 0},
+            {"food": "Broccoli", "category": "Vegetables", "meal_type": "Lunch", "calories_per_100g": 55, "protein": 4, "carbs": 11, "fat": 0.5, "fiber": 4, "sugars": 2, "sodium": 30, "cholesterol": 0, "water_intake": 0},
+        ]
+
+        plan = backend_app.build_meal_plan(foods, 2200)
+        lunch = plan["almuerzo"]
+        lunch_names = {item["food"] for item in lunch}
+
+        self.assertIn("Chicken Breast", lunch_names)
+        self.assertIn("Rice", lunch_names)
+        self.assertTrue(any(item["category"] == "Vegetables" for item in lunch))
+
     def test_food_catalog_returns_dataset_items(self):
         response = self.client.get("/nutrition/foods", params={"limit": 5})
 

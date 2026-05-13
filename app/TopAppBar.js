@@ -8,7 +8,7 @@ import { useTheme } from './ThemeContext';
 export default function TopAppBar() {
   const navigation = useNavigation();
   const { userProfile, currentUser } = useAuth();
-  const { theme, isDark, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const [avatarFailed, setAvatarFailed] = useState(false);
   const firstName = userProfile?.fullName?.trim()?.split(' ')?.[0] || 'Usuario';
   const avatarUrl = userProfile?.photoURL || currentUser?.photoURL || '';
@@ -37,14 +37,6 @@ export default function TopAppBar() {
         </TouchableOpacity>
         <Text style={[styles.brandText, { color: theme.primary }]}>FITAPP</Text>
       </View>
-
-      <TouchableOpacity
-        style={[styles.themeButton, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}
-        activeOpacity={0.85}
-        onPress={toggleTheme}
-      >
-        <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={16} color={theme.text} />
-      </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.profileButton}
@@ -105,15 +97,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 2,
-  },
-  themeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
   },
   profileMeta: {
     marginRight: 10,
