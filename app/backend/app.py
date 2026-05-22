@@ -407,23 +407,45 @@ def food_matches_role(food: Dict[str, Any], role: str) -> bool:
         return food["fat"] >= 10 and food["sugars"] <= 18
     return False
 
-def score_food_for_role(food: Dict[str, Any], role: str, target_calories: float) -> tuple:
+def _preferred_index(category: str, preferred_categories: Optional[List[str]]) -> int:
+    if not preferred_categories:
+        return 99
+    try:
+        return preferred_categories.index(category)
+    except ValueError:
+        return len(preferred_categories) + 1
+
+def _food_name_penalty(food_name: str, discouraged_tokens: Optional[List[str]]) -> int:
+    if not discouraged_tokens:
+        return 0
+    lowered = food_name.lower()
+    return sum(token in lowered for token in discouraged_tokens)
+
+def score_food_for_role(
+    food: Dict[str, Any],
+    role: str,
+    target_calories: float,
+    preferred_categories: Optional[List[str]] = None,
+    discouraged_tokens: Optional[List[str]] = None,
+) -> tuple:
     calorie_gap = abs(food["calories_per_100g"] - target_calories)
     category = food["category"].lower()
+    preferred_category = _preferred_index(category, preferred_categories)
+    name_penalty = _food_name_penalty(food["food"], discouraged_tokens)
 
     if role == "protein":
-        preferred_category = 0 if category in {"meat", "dairy"} else 1
         return (
             preferred_category,
+            name_penalty,
             -food["protein"],
             food["sugars"],
             calorie_gap,
         )
 
     if role == "complex_carb":
-        preferred_category = 0 if category == "grains" else 1 if category == "vegetables" else 2
         return (
             preferred_category,
+            name_penalty,
             -food["fiber"],
             -food["carbs"],
             food["sugars"],
@@ -431,9 +453,9 @@ def score_food_for_role(food: Dict[str, Any], role: str, target_calories: float)
         )
 
     if role == "produce":
-        preferred_category = 0 if category == "vegetables" else 1 if category == "fruits" else 2
         return (
             preferred_category,
+            name_penalty,
             food["sugars"],
             -food["fiber"],
             calorie_gap,
@@ -441,6 +463,8 @@ def score_food_for_role(food: Dict[str, Any], role: str, target_calories: float)
 
     if role == "healthy_fat":
         return (
+            preferred_category,
+            name_penalty,
             food["sugars"],
             -food["fat"],
             -food["fiber"],
@@ -452,9 +476,12 @@ def score_food_for_role(food: Dict[str, Any], role: str, target_calories: float)
 def pick_food_by_role(
     meal_foods: List[Dict[str, Any]],
     selected_names: set,
+    selected_categories: set,
     role: str,
     target_calories: float,
     excluded_categories: Optional[set] = None,
+    preferred_categories: Optional[List[str]] = None,
+    discouraged_tokens: Optional[List[str]] = None,
 ) -> Optional[Dict[str, Any]]:
     candidates = [
         food for food in meal_foods
@@ -465,13 +492,31 @@ def pick_food_by_role(
     if not candidates:
         return None
 
-    return min(candidates, key=lambda food: score_food_for_role(food, role, target_calories))
+    def candidate_key(food: Dict[str, Any]) -> tuple:
+        return (
+            food["category"].lower() in selected_categories,
+            score_food_for_role(
+                food,
+                role,
+                target_calories,
+                preferred_categories=preferred_categories,
+                discouraged_tokens=discouraged_tokens,
+            ),
+        )
 
-def fallback_meal_foods(meal_foods: List[Dict[str, Any]], count: int, target_calories: float) -> List[Dict[str, Any]]:
+    return min(candidates, key=candidate_key)
+
+def fallback_meal_foods(
+    meal_foods: List[Dict[str, Any]],
+    count: int,
+    target_calories: float,
+    discouraged_tokens: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
     ranked = sorted(
         meal_foods,
         key=lambda food: (
             food["category"].lower() in {"beverages", "snacks"},
+            _food_name_penalty(food["food"], discouraged_tokens),
             abs(food["calories_per_100g"] - target_calories),
             food["sugars"],
             -food["protein"],
@@ -494,30 +539,40 @@ def build_balanced_meal(
     target_calories: float,
     roles: List[str],
     excluded_categories: Optional[set] = None,
+    role_preferences: Optional[Dict[str, List[str]]] = None,
+    discouraged_tokens: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
     selected = []
     selected_names = set()
+    selected_categories = set()
 
     for role in roles:
         choice = pick_food_by_role(
             meal_foods,
             selected_names,
+            selected_categories,
             role,
             target_calories,
             excluded_categories=excluded_categories,
+            preferred_categories=(role_preferences or {}).get(role),
+            discouraged_tokens=discouraged_tokens,
         )
         if choice:
             selected.append(choice)
             selected_names.add(choice["food"])
+            selected_categories.add(choice["category"].lower())
 
     if len(selected) < 3:
-        for food in fallback_meal_foods(meal_foods, 6, target_calories):
+        for food in fallback_meal_foods(meal_foods, 6, target_calories, discouraged_tokens=discouraged_tokens):
             if food["food"] in selected_names:
                 continue
             if excluded_categories and food["category"].lower() in excluded_categories and len(selected) < 2:
                 continue
+            if food["category"].lower() in selected_categories and len(selected_categories) < 3:
+                continue
             selected.append(food)
             selected_names.add(food["food"])
+            selected_categories.add(food["category"].lower())
             if len(selected) == 3:
                 break
 
@@ -534,18 +589,42 @@ def build_meal_plan(foods: List[Dict[str, Any]], calories: float) -> Dict[str, L
         "desayuno": {
             "roles": ["protein", "complex_carb", "produce"],
             "excluded_categories": {"beverages"},
+            "role_preferences": {
+                "protein": ["dairy", "meat"],
+                "complex_carb": ["grains", "fruits"],
+                "produce": ["fruits", "vegetables"],
+            },
+            "discouraged_tokens": ["soda"],
         },
         "almuerzo": {
             "roles": ["protein", "complex_carb", "produce"],
             "excluded_categories": {"beverages", "snacks"},
+            "role_preferences": {
+                "protein": ["meat", "vegetables", "dairy"],
+                "complex_carb": ["grains", "vegetables"],
+                "produce": ["vegetables", "fruits"],
+            },
+            "discouraged_tokens": ["bread", "cookie", "cake", "juice", "soda", "cereal", "butter", "yogurt"],
         },
         "merienda": {
             "roles": ["protein", "produce", "healthy_fat"],
             "excluded_categories": {"beverages"},
+            "role_preferences": {
+                "protein": ["dairy", "meat"],
+                "produce": ["fruits", "vegetables"],
+                "healthy_fat": ["dairy", "grains", "fruits"],
+            },
+            "discouraged_tokens": ["soda"],
         },
         "cena": {
             "roles": ["protein", "complex_carb", "produce"],
             "excluded_categories": {"beverages", "snacks"},
+            "role_preferences": {
+                "protein": ["meat", "vegetables", "dairy"],
+                "complex_carb": ["vegetables", "grains"],
+                "produce": ["vegetables", "fruits"],
+            },
+            "discouraged_tokens": ["bread", "cookie", "cake", "juice", "soda", "cereal", "butter", "yogurt"],
         },
     }
     by_meal = {}
@@ -562,9 +641,16 @@ def build_meal_plan(foods: List[Dict[str, Any]], calories: float) -> Dict[str, L
             target_calories,
             template["roles"],
             excluded_categories=template["excluded_categories"],
+            role_preferences=template["role_preferences"],
+            discouraged_tokens=template["discouraged_tokens"],
         )
         if len(selected) < 3:
-            selected = fallback_meal_foods(meal_foods, 3, target_calories)
+            selected = fallback_meal_foods(
+                meal_foods,
+                3,
+                target_calories,
+                discouraged_tokens=template["discouraged_tokens"],
+            )
 
         by_meal[meal_name] = selected
 

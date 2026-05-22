@@ -53,11 +53,16 @@ const WorkoutExerciseDetailScreen = ({ route, navigation }) => {
         ]}
       >
         <Animated.View style={{ transform: [{ scale: mediaScale }] }}>
-          <Image source={exercise.image || fallbackImage} style={styles.heroImage} resizeMode="contain" />
+          {exercise.remoteMedia?.gifUrl ? (
+            <Image source={{ uri: exercise.remoteMedia.gifUrl }} style={styles.heroImage} resizeMode="contain" />
+          ) : (
+            <Image source={exercise.image || fallbackImage} style={styles.heroImage} resizeMode="contain" />
+          )}
         </Animated.View>
         <Text style={[styles.heroCaption, { color: theme.textMuted }]}>
-          Vista animada de referencia. Si despues me compartes GIFs propios o con permiso de uso,
-          esta pantalla ya queda lista para mostrarlos.
+          {exercise.remoteMedia?.gifUrl
+            ? 'Demostracion animada del ejercicio para ayudarte a entender mejor la tecnica.'
+            : 'Vista de referencia local. Si este ejercicio encuentra coincidencia remota, aqui se mostrara su GIF animado.'}
         </Text>
       </Animated.View>
 
@@ -78,7 +83,25 @@ const WorkoutExerciseDetailScreen = ({ route, navigation }) => {
           <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Nivel</Text>
           <Text style={[styles.infoValue, { color: theme.text }]}>{exercise.level}</Text>
         </View>
+        {exercise.remoteMedia?.equipments?.length ? (
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Equipo</Text>
+            <Text style={[styles.infoValue, { color: theme.text }]}>{exercise.remoteMedia.equipments.join(', ')}</Text>
+          </View>
+        ) : null}
       </View>
+
+      {exercise.remoteMedia?.instructions?.length ? (
+        <View style={[styles.infoCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.instructionsTitle, { color: theme.text }]}>Tecnica guiada</Text>
+          {exercise.remoteMedia.instructions.slice(0, 5).map((step, index) => (
+            <View key={`${step}-${index}`} style={styles.stepRow}>
+              <View style={[styles.stepDot, { backgroundColor: theme.primary }]} />
+              <Text style={[styles.stepText, { color: theme.textMuted }]}>{String(step).replace(/^Step:\d+\s*/i, '')}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.goBack()}>
         <Text style={styles.primaryButtonText}>Volver</Text>
@@ -100,6 +123,10 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   infoLabel: { color: '#6b7280' },
   infoValue: { color: '#111827', fontWeight: '700' },
+  instructionsTitle: { fontSize: 16, fontWeight: '800', marginBottom: 10 },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
+  stepDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6, marginRight: 10 },
+  stepText: { flex: 1, fontSize: 14, lineHeight: 21 },
   primaryButton: { marginTop: 18, backgroundColor: '#e60404', borderRadius: 28, paddingVertical: 16, alignItems: 'center' },
   primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

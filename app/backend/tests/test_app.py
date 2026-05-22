@@ -291,6 +291,23 @@ class ApiEndpointTests(unittest.TestCase):
         self.assertIn("Rice", lunch_names)
         self.assertTrue(any(item["category"] == "Vegetables" for item in lunch))
 
+    def test_build_meal_plan_discourages_breakfast_like_lunch_combos(self):
+        foods = [
+            {"food": "Bread", "category": "Grains", "meal_type": "Lunch", "calories_per_100g": 292, "protein": 12, "carbs": 47.3, "fat": 6.1, "fiber": 3, "sugars": 5, "sodium": 120, "cholesterol": 0, "water_intake": 20},
+            {"food": "Yogurt", "category": "Dairy", "meal_type": "Lunch", "calories_per_100g": 292, "protein": 40.9, "carbs": 72.1, "fat": 38.4, "fiber": 0.5, "sugars": 8, "sodium": 90, "cholesterol": 15, "water_intake": 30},
+            {"food": "Rice", "category": "Grains", "meal_type": "Lunch", "calories_per_100g": 293, "protein": 37.5, "carbs": 27.4, "fat": 3.3, "fiber": 2.4, "sugars": 1, "sodium": 10, "cholesterol": 0, "water_intake": 0},
+            {"food": "Beef Steak", "category": "Meat", "meal_type": "Lunch", "calories_per_100g": 294, "protein": 36.0, "carbs": 0, "fat": 9.4, "fiber": 0, "sugars": 0, "sodium": 80, "cholesterol": 65, "water_intake": 0},
+            {"food": "Broccoli", "category": "Vegetables", "meal_type": "Lunch", "calories_per_100g": 95, "protein": 8.0, "carbs": 14.0, "fat": 1.1, "fiber": 5.0, "sugars": 2, "sodium": 25, "cholesterol": 0, "water_intake": 0},
+        ]
+
+        plan = backend_app.build_meal_plan(foods, 2200)
+        lunch_names = {item["food"] for item in plan["almuerzo"]}
+
+        self.assertIn("Beef Steak", lunch_names)
+        self.assertIn("Rice", lunch_names)
+        self.assertIn("Broccoli", lunch_names)
+        self.assertNotIn("Yogurt", lunch_names)
+
     def test_food_catalog_returns_dataset_items(self):
         response = self.client.get("/nutrition/foods", params={"limit": 5})
 

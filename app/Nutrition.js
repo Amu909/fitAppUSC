@@ -102,6 +102,158 @@ const buildPlanRequest = (profile) => ({
 const mealCalories = (foods) =>
   foods.reduce((total, food) => total + Number(food.calories_per_100g || 0), 0);
 
+const mealTypeMap = {
+  desayuno: 'Breakfast',
+  almuerzo: 'Lunch',
+  merienda: 'Snack',
+  cena: 'Dinner',
+};
+
+const mealRoleTemplates = {
+  desayuno: {
+    protein: ['Dairy', 'Meat'],
+    carb: ['Grains', 'Fruits'],
+    produce: ['Fruits', 'Vegetables'],
+    discouraged: ['Soda'],
+  },
+  almuerzo: {
+    protein: ['Meat', 'Vegetables', 'Dairy'],
+    carb: ['Grains', 'Vegetables'],
+    produce: ['Vegetables', 'Fruits'],
+    discouraged: ['Bread', 'Yogurt', 'Cookies', 'Cake', 'Juice', 'Soda', 'Butter', 'Cereal'],
+  },
+  merienda: {
+    protein: ['Dairy', 'Meat'],
+    carb: ['Fruits', 'Grains'],
+    produce: ['Fruits', 'Vegetables'],
+    discouraged: ['Soda'],
+  },
+  cena: {
+    protein: ['Meat', 'Vegetables', 'Dairy'],
+    carb: ['Vegetables', 'Grains'],
+    produce: ['Vegetables', 'Fruits'],
+    discouraged: ['Bread', 'Yogurt', 'Cookies', 'Cake', 'Juice', 'Soda', 'Butter', 'Cereal'],
+  },
+};
+
+const uniqueFoodsByName = (items) => {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = `${item.food}-${item.category}-${item.meal_type}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const matchesPreferredCategory = (food, categories = []) => categories.includes(food.category);
+
+const containsDiscouragedToken = (food, tokens = []) => {
+  const lowered = String(food.food || '').toLowerCase();
+  return tokens.some((token) => lowered.includes(token.toLowerCase()));
+};
+
+const scoreAlternativeFood = (food, role, template, targetCalories) => {
+  const preferredCategories = template?.[role] || [];
+  const preferredIndex = preferredCategories.indexOf(food.category);
+  const categoryPenalty = preferredIndex === -1 ? preferredCategories.length + 1 : preferredIndex;
+  const discouragedPenalty = containsDiscouragedToken(food, template?.discouraged) ? 1 : 0;
+  const caloriePenalty = Math.abs(Number(food.calories_per_100g || 0) - targetCalories);
+
+  if (role === 'protein') {
+    return [categoryPenalty, discouragedPenalty, -Number(food.protein || 0), Number(food.sugars || 0), caloriePenalty];
+  }
+
+  if (role === 'carb') {
+    return [categoryPenalty, discouragedPenalty, -Number(food.carbs || 0), -Number(food.fiber || 0), Number(food.sugars || 0), caloriePenalty];
+  }
+
+  return [categoryPenalty, discouragedPenalty, Number(food.sugars || 0), -Number(food.fiber || 0), caloriePenalty];
+};
+
+const compareScoreArrays = (a, b) => {
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+    const left = a[index] ?? 0;
+    const right = b[index] ?? 0;
+    if (left < right) return -1;
+    if (left > right) return 1;
+  }
+  return 0;
+};
+
+const pickAlternativeFood = (candidates, role, template, targetCalories, usedNames, usedCategories) => {
+  const filtered = candidates.filter(
+    (food) =>
+      !usedNames.has(food.food) &&
+      (!usedCategories.has(food.category) || role === 'produce')
+  );
+
+  if (!filtered.length) return null;
+
+  return [...filtered].sort((left, right) =>
+    compareScoreArrays(
+      scoreAlternativeFood(left, role, template, targetCalories),
+      scoreAlternativeFood(right, role, template, targetCalories)
+    )
+  )[0];
+};
+
+const buildMealAlternativeCombos = (mealKey, pool, selectedFoods) => {
+  if (!pool.length) return [];
+
+  const template = mealRoleTemplates[mealKey];
+  const targetCalories = Math.max(80, mealCalories(selectedFoods) / Math.max(selectedFoods.length || 1, 1));
+  const sortedPool = uniqueFoodsByName(pool);
+  const combinations = [];
+  const maxOffsets = Math.min(18, sortedPool.length);
+
+  for (let offset = 0; offset < maxOffsets; offset += 1) {
+    const rotated = [...sortedPool.slice(offset), ...sortedPool.slice(0, offset)];
+    const usedNames = new Set();
+    const usedCategories = new Set();
+    const combo = [];
+
+    const protein = pickAlternativeFood(rotated, 'protein', template, targetCalories, usedNames, usedCategories);
+    if (protein) {
+      combo.push(protein);
+      usedNames.add(protein.food);
+      usedCategories.add(protein.category);
+    }
+
+    const carb = pickAlternativeFood(rotated, 'carb', template, targetCalories, usedNames, usedCategories);
+    if (carb) {
+      combo.push(carb);
+      usedNames.add(carb.food);
+      usedCategories.add(carb.category);
+    }
+
+    const produce = pickAlternativeFood(rotated, 'produce', template, targetCalories, usedNames, usedCategories);
+    if (produce) {
+      combo.push(produce);
+      usedNames.add(produce.food);
+      usedCategories.add(produce.category);
+    }
+
+    if (combo.length < 3) continue;
+
+    const comboKey = combo.map((item) => item.food).sort().join('|');
+    if (combinations.some((item) => item.key === comboKey)) continue;
+
+    combinations.push({
+      key: comboKey,
+      foods: combo,
+      calories: Math.round(mealCalories(combo)),
+      protein: Math.round(combo.reduce((sum, item) => sum + Number(item.protein || 0), 0)),
+      carbs: Math.round(combo.reduce((sum, item) => sum + Number(item.carbs || 0), 0)),
+      fat: Math.round(combo.reduce((sum, item) => sum + Number(item.fat || 0), 0)),
+    });
+
+    if (combinations.length === 5) break;
+  }
+
+  return combinations;
+};
+
 function CalorieRing({ consumed, target }) {
   const { theme } = useTheme();
   const size = 172;
@@ -189,11 +341,20 @@ export default function NutricionScreen() {
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiInsight, setAiInsight] = useState('');
+  const [showAlternatives, setShowAlternatives] = useState(false);
 
   const profileReady = hasRequiredProfile(userProfile);
   const firstName = userProfile?.fullName?.trim()?.split(' ')?.[0] || 'Usuario';
 
   const selectedFoods = plan?.plan_alimentario?.[selectedMeal] || [];
+  const mealDatasetFoods = useMemo(
+    () => foods.filter((food) => food.meal_type === mealTypeMap[selectedMeal]),
+    [foods, selectedMeal]
+  );
+  const mealAlternatives = useMemo(
+    () => buildMealAlternativeCombos(selectedMeal, mealDatasetFoods, selectedFoods),
+    [mealDatasetFoods, selectedFoods, selectedMeal]
+  );
   const allPlanFoods = useMemo(
     () => mealOrder.flatMap((meal) => plan?.plan_alimentario?.[meal] || []),
     [plan]
@@ -209,13 +370,13 @@ export default function NutricionScreen() {
       const payload = buildPlanRequest(userProfile);
       const [planResponse, foodsResponse] = await Promise.all([
         requestNutritionPlan(payload),
-        requestNutritionFoods({ limit: 24 }),
+        requestNutritionFoods({ limit: 120 }),
       ]);
 
       setPlan(planResponse);
       setFoods(foodsResponse.foods || []);
     } catch (error) {
-      Alert.alert('Nutricion', error.message || 'No fue posible cargar el plan con el dataset nutricional.');
+      Alert.alert('Nutricion', error.message || 'No fue posible cargar el plan nutricional.');
     } finally {
       setLoading(false);
     }
@@ -225,6 +386,10 @@ export default function NutricionScreen() {
     loadNutritionData();
   }, [userProfile?.uid, userProfile?.weight, userProfile?.height, userProfile?.age, userProfile?.goal]);
 
+  useEffect(() => {
+    setShowAlternatives(false);
+  }, [selectedMeal]);
+
   const handleNutritionAI = async () => {
     if (!plan) return;
 
@@ -232,7 +397,7 @@ export default function NutricionScreen() {
     try {
       const result = await requestModuleInsight({
         module: 'Nutricion',
-        intent: 'Analiza mi tracker nutricional, explica el plan alimentario y sugiere ajustes usando los alimentos del dataset.',
+        intent: 'Analiza mi tracker nutricional, explica el plan alimentario y sugiere ajustes usando alternativas alimentarias coherentes.',
         userProfile,
         moduleData: {
           plan,
@@ -285,28 +450,27 @@ export default function NutricionScreen() {
 
       <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft, shadowOpacity: isDark ? 0 : 0.07, elevation: isDark ? 0 : 5 }]}>
         <CalorieRing consumed={consumedCalories} target={targetCalories} />
-        <View style={styles.heroMetrics}>
-          <View style={[styles.metricLine, { backgroundColor: theme.surfaceAlt }]}>
-            <Text style={[styles.metricLabel, { color: theme.textSoft }]}>IMC</Text>
-            <Text style={[styles.metricValue, { color: theme.text }]}>{plan?.analisis_corporal?.bmi || '--'}</Text>
-          </View>
-          <View style={[styles.metricLine, { backgroundColor: theme.surfaceAlt }]}>
-            <Text style={[styles.metricLabel, { color: theme.textSoft }]}>Riesgo</Text>
-            <Text style={[styles.metricValue, { color: theme.text }]}>{plan?.analisis_corporal?.riesgo_salud || '--'}</Text>
-          </View>
-          <View style={[styles.metricLine, { backgroundColor: theme.surfaceAlt }]}>
-            <Text style={[styles.metricLabel, { color: theme.textSoft }]}>Dataset</Text>
-            <Text style={[styles.metricValue, { color: theme.text }]}>{plan?.dataset?.alimentos_filtrados || foods.length}</Text>
+          <View style={styles.heroMetrics}>
+            <View style={[styles.metricLine, { backgroundColor: theme.surfaceAlt }]}>
+              <Text style={[styles.metricLabel, { color: theme.textSoft }]}>IMC</Text>
+              <Text style={[styles.metricValue, { color: theme.text }]}>{plan?.analisis_corporal?.bmi || '--'}</Text>
+            </View>
+            <View style={[styles.metricLine, { backgroundColor: theme.surfaceAlt }]}>
+              <Text style={[styles.metricLabel, { color: theme.textSoft }]}>Riesgo</Text>
+              <Text style={[styles.metricValue, { color: theme.text }]}>{plan?.analisis_corporal?.riesgo_salud || '--'}</Text>
+            </View>
+            <View style={[styles.metricLine, { backgroundColor: theme.surfaceAlt }]}>
+              <Text style={[styles.metricLabel, { color: theme.textSoft }]}>Objetivo</Text>
+              <Text style={[styles.metricValue, { color: theme.text }]}>{goalLabels[userProfile?.goal] || 'Plan diario'}</Text>
+            </View>
           </View>
         </View>
-      </View>
 
       {plan ? (
         <>
           <View style={[styles.analysisCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: theme.text }]}>Analisis metabolico</Text>
-              <Text style={[styles.sectionMeta, { color: theme.primary }]}>recetas_api.py</Text>
             </View>
             <View style={styles.insightGrid}>
               <InsightStat label="BMR" value={`${plan.metabolismo.bmr} kcal`} />
@@ -376,16 +540,70 @@ export default function NutricionScreen() {
 
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Alimentos sugeridos</Text>
-            <Text style={[styles.sectionMeta, { color: theme.primary }]}>Food_and_Nutrition.csv</Text>
           </View>
 
           {selectedFoods.map((food, index) => (
             <FoodCard key={`${food.food}-${index}`} food={food} />
           ))}
 
+          <TouchableOpacity
+            style={[styles.alternativesButton, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}
+            onPress={() => setShowAlternatives((prev) => !prev)}
+            activeOpacity={0.88}
+          >
+            <View style={styles.alternativesButtonCopy}>
+              <Text style={[styles.alternativesButtonTitle, { color: theme.text }]}>
+                {showAlternatives ? 'Ocultar alternativas' : 'Tenemos mas opciones similares'}
+              </Text>
+              <Text style={[styles.alternativesButtonText, { color: theme.textMuted }]}>
+                Combinaciones coherentes con calorias y macronutrientes parecidos para no quedarte con una sola opcion.
+              </Text>
+            </View>
+            <Ionicons
+              name={showAlternatives ? 'chevron-up-outline' : 'chevron-forward-outline'}
+              size={20}
+              color={theme.primary}
+            />
+          </TouchableOpacity>
+
+          {showAlternatives ? (
+            <View style={styles.alternativesSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Alternativas para {mealLabels[selectedMeal].toLowerCase()}</Text>
+                <Text style={[styles.sectionMeta, { color: theme.primary }]}>{mealAlternatives.length} combos</Text>
+              </View>
+
+              {mealAlternatives.length > 0 ? (
+                mealAlternatives.map((combo, comboIndex) => (
+                  <View
+                    key={combo.key}
+                    style={[styles.alternativeCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}
+                  >
+                    <View style={styles.alternativeHeader}>
+                      <Text style={[styles.alternativeTitle, { color: theme.text }]}>Opcion {comboIndex + 1}</Text>
+                      <Text style={[styles.alternativeMeta, { color: theme.primary }]}>
+                        {combo.calories} kcal • P {combo.protein}g • C {combo.carbs}g • G {combo.fat}g
+                      </Text>
+                    </View>
+                    {combo.foods.map((food, foodIndex) => (
+                      <FoodCard key={`${combo.key}-${food.food}-${foodIndex}`} food={food} />
+                    ))}
+                  </View>
+                ))
+              ) : (
+                <View style={[styles.alternativeCard, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}>
+                  <Text style={[styles.alternativeTitle, { color: theme.text }]}>Sin alternativas suficientes</Text>
+                  <Text style={[styles.alternativesButtonText, { color: theme.textMuted }]}>
+                    En esta comida no encontramos suficientes opciones coherentes adicionales. Prueba otra comida o recarga el plan.
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : null}
+
           <AIAssistantPanel
             title="Analisis nutricional con IA"
-            subtitle="Evalua tu objetivo, perfil y alimentos reales del dataset."
+            subtitle="Evalua tu objetivo, perfil y alternativas alimentarias de tu plan."
             buttonLabel="Analizar mi plan"
             loading={aiLoading}
             insight={aiInsight}
@@ -724,6 +942,51 @@ const styles = StyleSheet.create({
   },
   foodRail: {
     paddingBottom: 8,
+  },
+  alternativesButton: {
+    marginTop: 6,
+    marginBottom: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  alternativesButtonCopy: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  alternativesButtonTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  alternativesButtonText: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+  },
+  alternativesSection: {
+    marginBottom: 10,
+  },
+  alternativeCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 14,
+  },
+  alternativeHeader: {
+    marginBottom: 10,
+  },
+  alternativeTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  alternativeMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '800',
   },
   recommendations: {
     backgroundColor: '#ffffff',

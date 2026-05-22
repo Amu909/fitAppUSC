@@ -8,6 +8,7 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthProvider, useAuth } from './app/AuthContext';
+import { NotificationProvider } from './app/NotificationContext';
 import { ThemeProvider, useTheme } from './app/ThemeContext';
 import Login from './app/login';
 import Home from './app/home';
@@ -22,6 +23,9 @@ import WorkoutExerciseDetailScreen from './app/WorkoutExerciseDetailScreen';
 import ManageRolesScreen from './app/ManageRolesScreen';
 import TopAppBar from './app/TopAppBar';
 import ProfileScreen from './app/ProfileScreen';
+import NotificationsScreen from './app/NotificationsScreen';
+import SettingsScreen from './app/SettingsScreen';
+import SessionPlanScreen from './app/SessionPlanScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -128,6 +132,21 @@ function RootNavigator() {
             component={WorkoutTimerScreen}
             options={{ headerShown: true, header: () => <TopAppBar /> }}
           />
+          <Stack.Screen
+            name="NotificationsScreen"
+            component={NotificationsScreen}
+            options={{ headerShown: true, header: () => <TopAppBar /> }}
+          />
+          <Stack.Screen
+            name="SettingsScreen"
+            component={SettingsScreen}
+            options={{ headerShown: true, header: () => <TopAppBar /> }}
+          />
+          <Stack.Screen
+            name="SessionPlanScreen"
+            component={SessionPlanScreen}
+            options={{ headerShown: true, header: () => <TopAppBar /> }}
+          />
         </>
       ) : (
         <Stack.Screen name="Login" component={Login} />
@@ -177,7 +196,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppShell />
+        <NotificationProvider>
+          <AppShell />
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

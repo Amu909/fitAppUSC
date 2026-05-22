@@ -1,0 +1,112 @@
+const EXERCISE_LIBRARY = {
+  Pecho: [
+    { name: 'Press de banca', reps: '4 x 8-10', focus: 'Pectoral medio', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/PECHO.png'), description: 'Ejercicio base de empuje horizontal para desarrollar fuerza y masa en pecho.' },
+    { name: 'Press inclinado', reps: '4 x 10', focus: 'Pecho superior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/PECHO.png'), description: 'Variante inclinada para enfatizar la zona clavicular del pectoral.' },
+    { name: 'Press declinado', reps: '3 x 10', focus: 'Pecho inferior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/PECHO.png'), description: 'Movimiento orientado a la porcion inferior del pecho con buen control de descenso.' },
+    { name: 'Aperturas con mancuernas', reps: '3 x 12', focus: 'Aduccion de pecho', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/PECHO.png'), description: 'Trabajo de apertura para mejorar estiramiento y contraccion del pectoral.' },
+    { name: 'Fondos en paralelas', reps: '3 x 8-12', focus: 'Pecho y triceps', level: 'Avanzado', image: require('../../assets/images/WORKOUTS/PECHO.png'), description: 'Empuje en cadena cerrada que combina pecho inferior, hombro y triceps.' },
+  ],
+  Cardio: [
+    { name: 'Cinta de correr', reps: '20-30 min', focus: 'Resistencia aerobica', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Trabajo continuo en cinta para mejorar resistencia y gasto energetico.' },
+    { name: 'Bicicleta estatica', reps: '20 min', focus: 'Cardio de bajo impacto', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Opcion estable para resistencia cardiovascular sin tanto impacto articular.' },
+    { name: 'Remo', reps: '12-18 min', focus: 'Cardio y espalda', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Trabajo completo que combina resistencia cardiovascular y traccion.' },
+    { name: 'Eliptica', reps: '18-25 min', focus: 'Cardio global', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Movimiento continuo de bajo impacto para subir pulsaciones con fluidez.' },
+    { name: 'Escaladora', reps: '10-15 min', focus: 'Piernas y cardio', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Trabajo intenso para gluteos, piernas y capacidad cardiovascular.' },
+  ],
+  Espalda: [
+    { name: 'Dominadas', reps: '4 x 6-10', focus: 'Dorsales', level: 'Avanzado', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Tiron vertical exigente para dorsal ancho, agarre y control escapular.' },
+    { name: 'Jalon al pecho', reps: '4 x 10-12', focus: 'Dorsal ancho', level: 'Principiante', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Variante guiada para aprender el patron de traccion vertical.' },
+    { name: 'Remo con barra', reps: '4 x 8-10', focus: 'Espalda media', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Tiron horizontal compuesto para dorsales, romboides y core.' },
+    { name: 'Remo con mancuerna', reps: '4 x 12', focus: 'Espalda media', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Trabajo unilateral para corregir asimetrias y ganar control.' },
+    { name: 'Peso muerto', reps: '4 x 6-8', focus: 'Cadena posterior', level: 'Avanzado', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Compuesto global para espalda, gluteos, femoral y estabilidad.' },
+  ],
+  Hombros: [
+    { name: 'Press militar', reps: '4 x 8-10', focus: 'Deltoide anterior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Empuje vertical base para hombro, triceps y estabilidad del core.' },
+    { name: 'Elevaciones laterales', reps: '4 x 12-15', focus: 'Deltoide medio', level: 'Principiante', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Movimiento analitico para dar amplitud visual al hombro.' },
+    { name: 'Elevaciones frontales', reps: '3 x 12', focus: 'Deltoide anterior', level: 'Principiante', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Trabajo frontal con recorrido controlado para hombro anterior.' },
+    { name: 'Pajaros', reps: '3 x 15', focus: 'Deltoide posterior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Clave para fortalecer hombro posterior y mejorar postura.' },
+    { name: 'Encogimientos', reps: '3 x 15', focus: 'Trapecio superior', level: 'Principiante', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Trabajo puntual para trapecio, estabilidad y control escapular.' },
+  ],
+  Biceps: [
+    { name: 'Curl con barra', reps: '4 x 10', focus: 'Biceps braquial', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Curl bilateral para fuerza y masa en el biceps.' },
+    { name: 'Curl con mancuernas', reps: '4 x 12', focus: 'Biceps braquial', level: 'Principiante', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Variante accesible para aislar cada brazo con mejor recorrido.' },
+    { name: 'Curl martillo', reps: '3 x 12', focus: 'Braquial y braquiorradial', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Patron neutro que fortalece biceps y antebrazo.' },
+    { name: 'Curl concentrado', reps: '3 x 10', focus: 'Pico del biceps', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Trabajo unilateral para maxima concentracion y control.' },
+    { name: 'Curl en banco inclinado', reps: '3 x 12', focus: 'Biceps en estiramiento', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Ejercicio con gran recorrido que enfatiza el estiramiento del biceps.' },
+  ],
+  Triceps: [
+    { name: 'Extension en polea', reps: '4 x 12', focus: 'Triceps lateral', level: 'Principiante', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Extension controlada para volumen y tecnica en triceps.' },
+    { name: 'Extension con mancuerna', reps: '3 x 12', focus: 'Triceps largo', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Extension por encima de la cabeza para alargar la porcion larga.' },
+    { name: 'Fondos en paralelas', reps: '3 x 8-12', focus: 'Triceps y pecho', level: 'Avanzado', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Empuje de alta demanda para fuerza funcional del brazo.' },
+    { name: 'Extension francesa', reps: '3 x 10', focus: 'Triceps largo', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Aislamiento clasico para la extension del codo.' },
+    { name: 'Press cerrado', reps: '4 x 8', focus: 'Triceps y empuje', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/PECHO.png'), description: 'Variante de press para dar protagonismo al triceps.' },
+  ],
+  Antebrazos: [
+    { name: 'Curl de muneca', reps: '4 x 15', focus: 'Flexores de muneca', level: 'Principiante', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Trabajo de flexion para fuerza de muneca y antebrazo.' },
+    { name: 'Extension de muneca', reps: '4 x 15', focus: 'Extensores de muneca', level: 'Principiante', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Patron complementario para equilibrio y salud del antebrazo.' },
+    { name: 'Curl inverso', reps: '3 x 12', focus: 'Braquiorradial', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Curl prono que fortalece agarre y cara superior del antebrazo.' },
+    { name: "Farmer's walk", reps: '4 x 30 m', focus: 'Agarre y antebrazo', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Caminata cargada para resistencia de agarre y control corporal.' },
+  ],
+  Abdominales: [
+    { name: 'Crunch', reps: '4 x 20', focus: 'Abdomen superior', level: 'Principiante', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Movimiento basico para flexion controlada del tronco.' },
+    { name: 'Elevaciones de piernas', reps: '4 x 15', focus: 'Abdomen inferior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Trabajo enfocado en core inferior y control lumbo-pelvico.' },
+    { name: 'Plancha', reps: '4 x 40 s', focus: 'Core profundo', level: 'Principiante', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Estabilizacion isometrica para abdomen y columna.' },
+    { name: 'Crunch en polea', reps: '3 x 15', focus: 'Abdomen con carga', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Variante con resistencia para ganar fuerza abdominal.' },
+    { name: 'Russian twist', reps: '3 x 24', focus: 'Oblicuos', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Rotacion controlada para oblicuos y coordinacion del core.' },
+  ],
+  Cuadriceps: [
+    { name: 'Sentadilla', reps: '4 x 8-10', focus: 'Cuadriceps y gluteos', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Base del tren inferior para fuerza y control de rodilla.' },
+    { name: 'Prensa de piernas', reps: '4 x 12', focus: 'Cuadriceps', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Trabajo guiado para volumen del cuadriceps con estabilidad.' },
+    { name: 'Zancadas', reps: '3 x 12 por pierna', focus: 'Cuadriceps y equilibrio', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Patron unilateral que mejora fuerza, estabilidad y coordinacion.' },
+    { name: 'Extension de piernas', reps: '3 x 15', focus: 'Cuadriceps aislado', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Aislamiento directo para estimular la parte frontal del muslo.' },
+    { name: 'Sentadilla hack', reps: '4 x 10', focus: 'Cuadriceps dominante', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Variante guiada para cargar con seguridad el cuadriceps.' },
+  ],
+  Isquiotibiales: [
+    { name: 'Peso muerto rumano', reps: '4 x 8-10', focus: 'Femoral y gluteo', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Bisagra de cadera para fortalecer toda la cadena posterior.' },
+    { name: 'Curl femoral acostado', reps: '4 x 12', focus: 'Isquiotibiales', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Trabajo guiado para femoral en flexion de rodilla.' },
+    { name: 'Curl femoral sentado', reps: '3 x 12', focus: 'Isquiotibiales', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Variante sentada con recorrido controlado para femoral.' },
+    { name: 'Buenos dias', reps: '3 x 10', focus: 'Cadena posterior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Bisagra tecnica que fortalece lumbar, gluteo y femoral.' },
+  ],
+  Gluteos: [
+    { name: 'Hip thrust', reps: '4 x 10', focus: 'Gluteo mayor', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Movimiento principal para potencia de cadera y fuerza de gluteo.' },
+    { name: 'Sentadilla bulgara', reps: '3 x 10 por pierna', focus: 'Gluteo y cuadriceps', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Trabajo unilateral para gluteo, estabilidad y control.' },
+    { name: 'Patada de gluteo', reps: '3 x 15 por pierna', focus: 'Extension de cadera', level: 'Principiante', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Aislamiento simple para activar gluteo con control.' },
+    { name: 'Abduccion de cadera', reps: '3 x 18', focus: 'Gluteo medio', level: 'Principiante', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Trabajo lateral para estabilizar cadera y pelvis.' },
+    { name: 'Puente de gluteo', reps: '4 x 15', focus: 'Activacion glutea', level: 'Principiante', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Base para activar cadena posterior y aprender empuje de cadera.' },
+  ],
+  Pantorrillas: [
+    { name: 'Elevacion de talones de pie', reps: '4 x 18', focus: 'Gemelo', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Trabajo basico de pie para desarrollo de pantorrilla.' },
+    { name: 'Elevacion de talones sentado', reps: '4 x 20', focus: 'Soleo', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Variante sentada para enfatizar el soleo.' },
+    { name: 'Elevacion en prensa', reps: '4 x 15', focus: 'Pantorrilla con carga', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Gemelo en maquina para subir carga con estabilidad.' },
+    { name: 'Elevacion a una pierna', reps: '3 x 15 por pierna', focus: 'Gemelo unilateral', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Trabajo unilateral para corregir diferencias de fuerza.' },
+  ],
+  Aductores: [
+    { name: 'Aductores en maquina', reps: '4 x 15', focus: 'Muslo interno', level: 'Principiante', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Trabajo guiado para fortalecer la cara interna del muslo.' },
+    { name: 'Aductores con polea', reps: '3 x 15 por pierna', focus: 'Aductores', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Variante unilateral con cable para control y rango.' },
+    { name: 'Sissy squat', reps: '3 x 12', focus: 'Aductores y cuadriceps', level: 'Avanzado', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Patron tecnico que reta rodilla, control corporal y muslo interno.' },
+  ],
+  Abductores: [
+    { name: 'Abduccion en maquina', reps: '4 x 15', focus: 'Gluteo medio', level: 'Principiante', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Trabajo lateral en maquina para estabilizar cadera.' },
+    { name: 'Abduccion con banda', reps: '3 x 20', focus: 'Abductores de cadera', level: 'Principiante', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Movimiento con banda para activar gluteo medio y control lateral.' },
+    { name: 'Patinador lateral', reps: '3 x 16', focus: 'Abductores y cardio', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Desplazamiento lateral para potencia y estabilidad de cadera.' },
+  ],
+};
+
+const SEARCH_HINTS = {
+  Pecho: 'Busca ejercicios, por ejemplo press de banca',
+  Espalda: 'Busca ejercicios, por ejemplo remo con barra',
+  Hombros: 'Busca ejercicios, por ejemplo press militar',
+  Biceps: 'Busca ejercicios, por ejemplo curl con barra',
+  Triceps: 'Busca ejercicios, por ejemplo extension en polea',
+  Antebrazos: 'Busca ejercicios, por ejemplo curl inverso',
+  Abdominales: 'Busca ejercicios, por ejemplo crunch',
+  Cuadriceps: 'Busca ejercicios, por ejemplo sentadilla',
+  Isquiotibiales: 'Busca ejercicios, por ejemplo peso muerto rumano',
+  Gluteos: 'Busca ejercicios, por ejemplo hip thrust',
+  Pantorrillas: 'Busca ejercicios, por ejemplo elevacion de talones',
+  Aductores: 'Busca ejercicios, por ejemplo aductores en maquina',
+  Abductores: 'Busca ejercicios, por ejemplo abduccion con banda',
+  Cardio: 'Busca ejercicios, por ejemplo bicicleta estatica',
+};
+
+export { EXERCISE_LIBRARY, SEARCH_HINTS };

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pedometer } from 'expo-sensors';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from './AuthContext';
+import { useNotifications } from './NotificationContext';
 import { useTheme } from './ThemeContext';
 import {
   formatDurationLabel,
@@ -59,6 +60,7 @@ const formatYesterdayLabel = () =>
 export default function Home() {
   const navigation = useNavigation();
   const { userProfile, currentUser } = useAuth();
+  const { unreadCount } = useNotifications();
   const { theme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [yesterdayLogs, setYesterdayLogs] = useState([]);
@@ -138,7 +140,7 @@ export default function Home() {
   );
 
   const goToWorkout = (type) => {
-    navigation.navigate('WorkoutTimerScreen', { type });
+    navigation.navigate('SessionPlanScreen', { type });
   };
 
   return (
@@ -168,9 +170,10 @@ export default function Home() {
         <TouchableOpacity
           style={[styles.notificationButton, { backgroundColor: theme.surface, borderColor: theme.borderSoft }]}
           activeOpacity={0.85}
+          onPress={() => navigation.navigate('NotificationsScreen')}
         >
           <Ionicons name="notifications-outline" size={20} color={theme.text} />
-          <View style={styles.notificationDot} />
+          {unreadCount > 0 ? <View style={styles.notificationDot} /> : null}
         </TouchableOpacity>
       </View>
 

@@ -130,6 +130,68 @@ Notas:
 
 ---
 
+## Backend en Render
+
+El backend FastAPI de este proyecto ya puede desplegarse en Render usando el archivo [render.yaml](/C:/Users/luis_/fitAppUSC/render.yaml).
+
+### Opcion recomendada: Blueprint
+
+1. Sube este repositorio a GitHub.
+2. En Render, entra a `New +` -> `Blueprint`.
+3. Conecta el repositorio y selecciona la rama principal.
+4. Render detectara `render.yaml` y creara el servicio `fitappusc-backend`.
+5. Define la variable secreta `GROQ_API_KEY` cuando Render la solicite.
+6. Espera a que termine el deploy.
+
+El backend quedara publicado con un dominio parecido a:
+
+```txt
+https://fitappusc-backend.onrender.com
+```
+
+### Variables necesarias en Render
+
+Configura estas variables en el servicio:
+
+```env
+GROQ_API_KEY=tu_api_key_real_de_groq
+GROQ_MODEL=llama-3.3-70b-versatile
+```
+
+### Configuracion que ya queda resuelta
+
+- `rootDir: app/backend`
+- instalacion con `pip install -r requeriments.txt`
+- arranque con `uvicorn app:app --host 0.0.0.0 --port $PORT`
+- health check en `/health`
+
+### Conectar el frontend a Render
+
+Cuando el backend ya este arriba, actualiza el frontend con la URL publica:
+
+```env
+EXPO_PUBLIC_API_BASE_URL=https://fitappusc-backend.onrender.com
+```
+
+### Pruebas rapidas despues del deploy
+
+Abre estas rutas en el navegador:
+
+```txt
+https://fitappusc-backend.onrender.com/health
+https://fitappusc-backend.onrender.com/ai/status
+```
+
+Si todo esta bien:
+- `/health` debe responder que el servicio esta activo
+- `/ai/status` debe indicar si Groq quedo configurado correctamente
+
+Nota:
+- en el plan `free`, Render puede dormir el servicio cuando no recibe trafico por un tiempo
+- el primer request despues de estar dormido puede tardar mas
+
+---
+
 ## 🍽️ API de Nutrición (FastAPI)
 
 La API está construida en Python con FastAPI y sirve los datos del archivo `Food_and_Nutrition.csv`.
