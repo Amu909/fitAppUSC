@@ -301,6 +301,11 @@ def get_nutrition_analyzer():
 def calculate_bmi(weight: float, height: float) -> float:
     return weight / ((height / 100) ** 2)
 
+def estimate_body_fat_from_bmi(weight: float, height: float, age: int, gender: str) -> float:
+    bmi = calculate_bmi(weight, height)
+    sex_factor = 1 if gender == "male" else 0
+    return (1.20 * bmi) + (0.23 * age) - (10.8 * sex_factor) - 5.4
+
 def calculate_bmr(weight: float, height: float, age: int, gender: str) -> float:
     if gender == "female":
         return 10 * weight + 6.25 * height - 5 * age - 161
@@ -791,8 +796,13 @@ async def generate_comprehensive_plan(request: NutritionPlanRequest):
             )
         except (ValueError, ZeroDivisionError):
             estimated_body_fat = None
-    if estimated_body_fat is None and request.waist_circumference:
-        estimated_body_fat = (1.2 * bmi) + (0.23 * request.age) - (16.2 if request.gender == "male" else 5.4)
+    if estimated_body_fat is None:
+        estimated_body_fat = estimate_body_fat_from_bmi(
+            request.weight,
+            request.height,
+            request.age,
+            request.gender,
+        )
 
     bmr = analyzer.calculate_bmr_advanced(
         request.weight,

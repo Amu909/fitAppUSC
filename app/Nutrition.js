@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import AIAssistantPanel from './AIAssistantPanel';
+import { estimateBodyFatPercentage } from './utils/bodyComposition';
 import { requestModuleInsight, requestNutritionFoods, requestNutritionPlan } from './utils/aiClient';
 
 const screenWidth = Dimensions.get('window').width;
@@ -93,7 +94,7 @@ const buildPlanRequest = (profile) => ({
   allergies: buildAllergies(profile),
   preferences: buildPreferences(profile),
   medical_conditions: buildMedicalConditions(profile),
-  body_fat_percentage: profile.body_fat_percentage || null,
+  body_fat_percentage: profile.body_fat_percentage || estimateBodyFatPercentage(profile),
   waist_circumference: profile.waist_circumference || null,
   neck_circumference: profile.neck_circumference || null,
   hip_circumference: profile.hip_circumference || null,
@@ -361,6 +362,10 @@ export default function NutricionScreen() {
   );
   const consumedCalories = useMemo(() => mealCalories(allPlanFoods), [allPlanFoods]);
   const targetCalories = plan?.metabolismo?.calorias_objetivo || 0;
+  const estimatedBodyFat = useMemo(
+    () => userProfile?.body_fat_percentage || estimateBodyFatPercentage(userProfile || {}),
+    [userProfile]
+  );
 
   const loadNutritionData = async () => {
     if (!profileReady) return;
@@ -477,7 +482,13 @@ export default function NutricionScreen() {
               <InsightStat label="TDEE" value={`${plan.metabolismo.tdee} kcal`} />
               <InsightStat
                 label="Grasa corporal"
-                value={plan.analisis_corporal.grasa_corporal_estimada ? `${plan.analisis_corporal.grasa_corporal_estimada}%` : 'Sin dato'}
+                value={
+                  plan.analisis_corporal.grasa_corporal_estimada
+                    ? `${plan.analisis_corporal.grasa_corporal_estimada}%`
+                    : estimatedBodyFat
+                      ? `${estimatedBodyFat}%`
+                      : 'Sin dato'
+                }
               />
               <InsightStat label="Cambio semanal" value={`${plan.metabolismo.cambio_peso_semanal_estimado} kg`} />
             </View>

@@ -30,6 +30,7 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { auth, db, storage } from '../firebaseconfig';
 import { useAuth } from './AuthContext';
+import { estimateBodyFatPercentage } from './utils/bodyComposition';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -73,7 +74,6 @@ const initialRegister = {
   goal: 'maintain',
   allergies: '',
   preferences: '',
-  body_fat_percentage: '',
   waist_circumference: '',
   neck_circumference: '',
   hip_circumference: '',
@@ -331,6 +331,13 @@ export default function Login() {
     }
     setLoading(true);
     try {
+      const estimatedBodyFat = estimateBodyFatPercentage({
+        weight: register.weight,
+        height: register.height,
+        age: register.age,
+        gender: register.gender,
+      });
+
       const created = await createUserWithEmailAndPassword(auth, register.email.trim(), register.password);
       const profilePayload = {
         uid: created.user.uid,
@@ -345,7 +352,7 @@ export default function Login() {
         goal: register.goal,
         allergies: register.allergies.trim(),
         preferences: register.preferences.trim(),
-        body_fat_percentage: register.body_fat_percentage ? Number(register.body_fat_percentage) : null,
+        body_fat_percentage: estimatedBodyFat,
         waist_circumference: register.waist_circumference ? Number(register.waist_circumference) : null,
         neck_circumference: register.neck_circumference ? Number(register.neck_circumference) : null,
         hip_circumference: register.hip_circumference ? Number(register.hip_circumference) : null,
@@ -603,7 +610,6 @@ export default function Login() {
           {renderInput('warning-outline', 'Alergias separadas por coma', register.allergies, (v) => updateRegister('allergies', v))}
           {renderInput('restaurant-outline', 'Preferencias alimentarias', register.preferences, (v) => updateRegister('preferences', v))}
           <Text style={styles.inlineLabel}>Medidas avanzadas opcionales</Text>
-          {renderInput('body-outline', 'Grasa corporal %', register.body_fat_percentage, (v) => updateRegister('body_fat_percentage', v))}
           {renderInput('resize-outline', 'Cintura en cm', register.waist_circumference, (v) => updateRegister('waist_circumference', v))}
           {renderInput('remove-outline', 'Cuello en cm', register.neck_circumference, (v) => updateRegister('neck_circumference', v))}
           {register.gender === 'female'
