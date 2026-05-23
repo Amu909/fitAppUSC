@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 import { useTheme } from './ThemeContext';
 import AIAssistantPanel from './AIAssistantPanel';
 import { requestModuleInsight } from './utils/aiClient';
+import { safeFormatDate } from './utils/dateFormat';
 
 const RING_COLORS = {
   move: '#ff1236',
@@ -15,12 +16,12 @@ const RING_COLORS = {
 };
 
 const formatToday = () =>
-  new Intl.DateTimeFormat('es-CO', {
+  safeFormatDate(new Date(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-  }).format(new Date());
+  });
 
 const buildBaseMetrics = (profile, steps) => {
   const age = Number(profile?.age) || 24;

@@ -15,6 +15,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from './AuthContext';
 import { useNotifications } from './NotificationContext';
 import { useTheme } from './ThemeContext';
+import { safeFormatDate } from './utils/dateFormat';
 import {
   formatDurationLabel,
   getYesterdayActivityLogs,
@@ -51,11 +52,11 @@ const spotlightSessions = [
 ];
 
 const formatYesterdayLabel = () =>
-  new Intl.DateTimeFormat('es-CO', {
+  safeFormatDate(getYesterdayRange().start, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-  }).format(getYesterdayRange().start);
+  });
 
 export default function Home() {
   const navigation = useNavigation();

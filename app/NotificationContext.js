@@ -1,19 +1,20 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import { useAuth } from './AuthContext';
+import { safeFormatDate } from './utils/dateFormat';
 
 const NotificationContext = createContext(null);
 
 const formatNotificationDate = (offsetHours) => {
   const date = new Date();
   date.setHours(date.getHours() - offsetHours);
-  return new Intl.DateTimeFormat('es-CO', {
+  return safeFormatDate(date, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     hour: 'numeric',
     minute: '2-digit',
-  }).format(date);
+  });
 };
 
 const buildNotifications = (firstName) => [
