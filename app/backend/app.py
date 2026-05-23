@@ -5,11 +5,11 @@ from pydantic import Field
 from typing import List, Optional, Dict, Any
 import csv
 import httpx
-import importlib.util
 import json
 import os
 from pathlib import Path
 from datetime import datetime
+import math
 
 def load_local_env():
     candidates = [
@@ -50,7 +50,7 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 FOOD_DATASET_PATH = Path(__file__).resolve().parent / "Food_and_Nutrition.csv"
-RECETAS_API_PATH = Path(__file__).resolve().parents[2] / "recetas_api.py"
+_food_dataset_cache = None
 
 class Message(BaseModel):
     role: str
@@ -255,6 +255,10 @@ def _number(value: Any, default: float = 0) -> float:
         return default
 
 def load_food_dataset() -> List[Dict[str, Any]]:
+    global _food_dataset_cache
+    if _food_dataset_cache is not None:
+        return _food_dataset_cache
+
     foods = []
     if not FOOD_DATASET_PATH.exists():
         return foods
@@ -279,24 +283,124 @@ def load_food_dataset() -> List[Dict[str, Any]]:
                 "cholesterol": round(_number(row.get("Cholesterol (mg)"))),
                 "water_intake": round(_number(row.get("Water_Intake (ml)"))),
             })
-    return foods
+    _food_dataset_cache = foods
+    return _food_dataset_cache
 
 _nutrition_analyzer = None
+
+class LightweightNutritionAnalyzer:
+    def __init__(self):
+        self.activity_multipliers = {
+            "sedentary": 1.2,
+            "light": 1.375,
+            "moderate": 1.55,
+            "active": 1.725,
+            "very_active": 1.9,
+        }
+        self.macro_ratios = {
+            "lose_weight": {"protein": 0.30, "carbs": 0.35, "fat": 0.35},
+            "maintain": {"protein": 0.25, "carbs": 0.45, "fat": 0.30},
+            "gain_muscle": {"protein": 0.30, "carbs": 0.40, "fat": 0.30},
+            "athletic": {"protein": 0.25, "carbs": 0.50, "fat": 0.25},
+        }
+
+    def calculate_bmi(self, weight: float, height: float) -> float:
+        return calculate_bmi(weight, height)
+
+    def calculate_body_fat_navy(self, gender: str, waist: float, neck: float, height: float, hip: float = None) -> float:
+        if gender == "male":
+            return 495 / (1.0324 - 0.19077 * math.log10(waist - neck) + 0.15456 * math.log10(height)) - 450
+        if hip is None:
+            return None
+        return 495 / (1.29579 - 0.35004 * math.log10(waist + hip - neck) + 0.22100 * math.log10(height)) - 450
+
+    def calculate_bmr_advanced(self, weight: float, height: float, age: int, gender: str, body_fat: float = None) -> float:
+        if gender == "male":
+            bmr_hb = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
+            bmr_msj = (10 * weight) + (6.25 * height) - (5 * age) + 5
+        else:
+            bmr_hb = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
+            bmr_msj = (10 * weight) + (6.25 * height) - (5 * age) - 161
+
+        if body_fat is not None:
+            lean_mass = weight * (1 - body_fat / 100)
+            return 370 + (21.6 * lean_mass)
+
+        return (bmr_hb + bmr_msj) / 2
+
+    def calculate_tdee(self, bmr: float, activity_level: str) -> float:
+        return bmr * self.activity_multipliers.get(activity_level, 1.2)
+
+    def adjust_calories_for_goal(self, tdee: float, goal: str, current_weight: float) -> float:
+        if goal == "lose_weight":
+            deficit = min(750, tdee * 0.25)
+            return tdee - deficit
+        if goal == "gain_muscle":
+            surplus = 400 if current_weight < 70 else 300
+            return tdee + surplus
+        if goal == "athletic":
+            return tdee + 200
+        return tdee
+
+    def calculate_macros(self, calories: float, goal: str) -> Dict[str, float]:
+        ratios = self.macro_ratios.get(goal, self.macro_ratios["maintain"])
+        protein_calories = calories * ratios["protein"]
+        carb_calories = calories * ratios["carbs"]
+        fat_calories = calories * ratios["fat"]
+        return {
+            "protein_g": protein_calories / 4,
+            "carbs_g": carb_calories / 4,
+            "fat_g": fat_calories / 9,
+            "protein_calories": protein_calories,
+            "carb_calories": carb_calories,
+            "fat_calories": fat_calories,
+        }
+
+    def assess_health_risk(self, bmi: float, waist_circumference: float = None, age: int = None) -> Dict[str, Any]:
+        risk_assessment = {
+            "bmi_category": "",
+            "health_risk": "bajo",
+            "recommendations": []
+        }
+
+        if bmi < 18.5:
+            risk_assessment["bmi_category"] = "Bajo peso"
+            risk_assessment["health_risk"] = "medio"
+            risk_assessment["recommendations"].append("Considera un aumento de peso saludable.")
+        elif 18.5 <= bmi < 25:
+            risk_assessment["bmi_category"] = "Peso normal"
+        elif 25 <= bmi < 30:
+            risk_assessment["bmi_category"] = "Sobrepeso"
+            risk_assessment["health_risk"] = "medio"
+            risk_assessment["recommendations"].append("Una reduccion moderada de peso puede mejorar tu salud.")
+        elif 30 <= bmi < 35:
+            risk_assessment["bmi_category"] = "Obesidad Grado I"
+            risk_assessment["health_risk"] = "alto"
+            risk_assessment["recommendations"].append("Conviene iniciar un plan estructurado de perdida de peso.")
+        elif 35 <= bmi < 40:
+            risk_assessment["bmi_category"] = "Obesidad Grado II"
+            risk_assessment["health_risk"] = "muy alto"
+            risk_assessment["recommendations"].append("Consulta apoyo profesional para tu plan de salud.")
+        else:
+            risk_assessment["bmi_category"] = "Obesidad Grado III"
+            risk_assessment["health_risk"] = "extremo"
+            risk_assessment["recommendations"].append("Busca orientacion medica prioritaria.")
+
+        if waist_circumference:
+            if waist_circumference > 102:
+                risk_assessment["recommendations"].append("Circunferencia de cintura elevada: cuida el riesgo cardiovascular.")
+            elif waist_circumference > 88:
+                risk_assessment["recommendations"].append("Circunferencia de cintura elevada: conviene reforzar habitos protectores.")
+
+        return risk_assessment
 
 def get_nutrition_analyzer():
     global _nutrition_analyzer
     if _nutrition_analyzer is not None:
         return _nutrition_analyzer
 
-    if RECETAS_API_PATH.exists():
-        spec = importlib.util.spec_from_file_location("fitapp_recetas_api", RECETAS_API_PATH)
-        if spec and spec.loader:
-            recetas_api = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(recetas_api)
-            _nutrition_analyzer = recetas_api.NutritionAnalyzer()
-            return _nutrition_analyzer
-
-    raise RuntimeError("No fue posible cargar NutritionAnalyzer desde recetas_api.py")
+    _nutrition_analyzer = LightweightNutritionAnalyzer()
+    return _nutrition_analyzer
 
 def calculate_bmi(weight: float, height: float) -> float:
     return weight / ((height / 100) ** 2)
