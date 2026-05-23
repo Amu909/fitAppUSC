@@ -6,11 +6,17 @@
   "build": {
     "preview": {
       "credentialsSource": "local",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://fitappusc-backend.onrender.com"
+      },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://fitappusc-backend.onrender.com"
+      },
       "android": {
         "buildType": "app-bundle"
       }

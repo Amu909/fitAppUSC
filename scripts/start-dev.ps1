@@ -4,6 +4,7 @@ $workspace = Split-Path -Parent $PSScriptRoot
 $backendHost = "127.0.0.1"
 $backendPort = 8000
 $healthUrl = "http://${backendHost}:${backendPort}/health"
+$envFile = Join-Path $workspace ".env"
 $backendArgs = @(
   "-m",
   "uvicorn",
@@ -13,6 +14,25 @@ $backendArgs = @(
   "--port",
   "$backendPort"
 )
+
+function Get-EnvValue {
+  param(
+    [string]$FilePath,
+    [string]$Key
+  )
+
+  if (-not (Test-Path $FilePath)) {
+    return $null
+  }
+
+  $line = Get-Content $FilePath | Where-Object { $_ -match "^\s*$Key\s*=" } | Select-Object -First 1
+  if (-not $line) {
+    return $null
+  }
+
+  $value = $line -replace "^\s*$Key\s*=\s*", ""
+  return $value.Trim().Trim('"').Trim("'")
+}
 
 function Test-BackendHealthy {
   param([string]$Url)
@@ -26,6 +46,20 @@ function Test-BackendHealthy {
 }
 
 function Start-BackendIfNeeded {
+  $explicitApiBaseUrl = Get-EnvValue -FilePath $envFile -Key "EXPO_PUBLIC_API_BASE_URL"
+
+  if ($explicitApiBaseUrl -and $explicitApiBaseUrl -match "^https?://") {
+    try {
+      $explicitHost = ([Uri]$explicitApiBaseUrl).Host
+      if ($explicitHost -and $explicitHost -notin @("127.0.0.1", "localhost", "10.0.2.2")) {
+        Write-Host "Backend remoto detectado en $explicitApiBaseUrl. No se iniciara backend local."
+        return
+      }
+    } catch {
+      Write-Host "No se pudo interpretar EXPO_PUBLIC_API_BASE_URL. Se intentara backend local."
+    }
+  }
+
   if (Test-BackendHealthy -Url $healthUrl) {
     Write-Host "Backend ya estaba corriendo en $healthUrl"
     return

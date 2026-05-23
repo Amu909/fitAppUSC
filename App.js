@@ -30,7 +30,9 @@ import SessionPlanScreen from './app/SessionPlanScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {
+  // Ignore splash lifecycle errors on native builds.
+});
 
 function BottomTabs() {
   const { theme } = useTheme();
@@ -182,16 +184,26 @@ function AppShell() {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_700Bold,
   });
 
   React.useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore splash lifecycle errors on native builds.
+      });
+    }
+  }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded) return <View />;
+  if (!fontsLoaded && !fontError) {
+    return (
+      <View style={styles.bootScreen}>
+        <ActivityIndicator size="large" color="#e60404" />
+      </View>
+    );
+  }
 
   return (
     <ThemeProvider>
@@ -214,5 +226,11 @@ const styles = {
     marginTop: 14,
     fontSize: 15,
     fontWeight: '600',
+  },
+  bootScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
   },
 };
