@@ -3,11 +3,11 @@ import { Alert, Image, Platform, ScrollView, StyleSheet, Text, View } from 'reac
 import Svg, { Circle, G } from 'react-native-svg';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pedometer } from 'expo-sensors';
-import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
-import AIAssistantPanel from './AIAssistantPanel';
-import { requestModuleInsight } from './utils/aiClient';
-import { safeFormatDate } from './utils/dateFormat';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../ThemeContext';
+import AIAssistantPanel from '../AIAssistantPanel';
+import { requestModuleInsight } from '../utils/aiClient';
+import { safeFormatDate } from '../utils/dateFormat';
 
 const RING_COLORS = {
   move: '#ff1236',

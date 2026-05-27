@@ -13,8 +13,8 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getAiStatus, requestChatMessage, requestChatSuggestions } from './utils/aiClient';
-import { useTheme } from './ThemeContext';
+import { getAiStatus, requestChatMessage, requestChatSuggestions } from '../utils/aiClient';
+import { useTheme } from '../ThemeContext';
 
 const INITIAL_MESSAGE = {
   role: 'assistant',

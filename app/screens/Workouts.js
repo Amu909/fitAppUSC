@@ -13,35 +13,35 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
-import AIAssistantPanel from './AIAssistantPanel';
-import { requestModuleInsight } from './utils/aiClient';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../ThemeContext';
+import AIAssistantPanel from '../AIAssistantPanel';
+import { requestModuleInsight } from '../utils/aiClient';
 
 const screenWidth = Dimensions.get('window').width;
 
 const categories = [
-  { id: '1', title: 'PECHO', image: require('../assets/images/WORKOUTS/PECHO.png'), exerciseGroup: 'Pecho', subtitle: 'Presses, aperturas y fondos' },
-  { id: '2', title: 'ESPALDA', image: require('../assets/images/WORKOUTS/FUERZA.png'), exerciseGroup: 'Espalda', subtitle: 'Tirones, remos y peso muerto' },
-  { id: '3', title: 'HOMBROS', image: require('../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Hombros', subtitle: 'Press y elevaciones del deltoide' },
-  { id: '4', title: 'BICEPS', image: require('../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Biceps', subtitle: 'Curls y trabajo de flexion' },
-  { id: '5', title: 'TRICEPS', image: require('../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Triceps', subtitle: 'Extensiones, fondos y press' },
-  { id: '6', title: 'ANTEBRAZOS', image: require('../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Antebrazos', subtitle: 'Muneca, agarre y control' },
-  { id: '7', title: 'ABDOMINALES', image: require('../assets/images/WORKOUTS/HIIT.png'), exerciseGroup: 'Abdominales', subtitle: 'Core frontal, inferior y oblicuos' },
-  { id: '8', title: 'CUADRICEPS', image: require('../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Cuadriceps', subtitle: 'Sentadillas, prensa y zancadas' },
-  { id: '9', title: 'ISQUIOTIBIALES', image: require('../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Isquiotibiales', subtitle: 'Cadena posterior y femoral' },
-  { id: '10', title: 'GLUTEOS', image: require('../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Gluteos', subtitle: 'Empuje de cadera y estabilidad' },
-  { id: '11', title: 'PANTORRILLAS', image: require('../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Pantorrillas', subtitle: 'Elevaciones y trabajo de gemelo' },
-  { id: '12', title: 'ADUCTORES', image: require('../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Aductores', subtitle: 'Muslo interno y control lateral' },
-  { id: '13', title: 'ABDUCTORES', image: require('../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Abductores', subtitle: 'Cadera externa y estabilidad' },
-  { id: '14', title: 'CARDIO', image: require('../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Cardio', subtitle: 'Resistencia y capacidad aerobica' },
+  { id: '1', title: 'PECHO', image: require('../../assets/images/WORKOUTS/PECHO.png'), exerciseGroup: 'Pecho', subtitle: 'Presses, aperturas y fondos' },
+  { id: '2', title: 'ESPALDA', image: require('../../assets/images/WORKOUTS/FUERZA.png'), exerciseGroup: 'Espalda', subtitle: 'Tirones, remos y peso muerto' },
+  { id: '3', title: 'HOMBROS', image: require('../../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Hombros', subtitle: 'Press y elevaciones del deltoide' },
+  { id: '4', title: 'BICEPS', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Biceps', subtitle: 'Curls y trabajo de flexion' },
+  { id: '5', title: 'TRICEPS', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Triceps', subtitle: 'Extensiones, fondos y press' },
+  { id: '6', title: 'ANTEBRAZOS', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Antebrazos', subtitle: 'Muneca, agarre y control' },
+  { id: '7', title: 'ABDOMINALES', image: require('../../assets/images/WORKOUTS/HIIT.png'), exerciseGroup: 'Abdominales', subtitle: 'Core frontal, inferior y oblicuos' },
+  { id: '8', title: 'CUADRICEPS', image: require('../../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Cuadriceps', subtitle: 'Sentadillas, prensa y zancadas' },
+  { id: '9', title: 'ISQUIOTIBIALES', image: require('../../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Isquiotibiales', subtitle: 'Cadena posterior y femoral' },
+  { id: '10', title: 'GLUTEOS', image: require('../../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Gluteos', subtitle: 'Empuje de cadera y estabilidad' },
+  { id: '11', title: 'PANTORRILLAS', image: require('../../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Pantorrillas', subtitle: 'Elevaciones y trabajo de gemelo' },
+  { id: '12', title: 'ADUCTORES', image: require('../../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Aductores', subtitle: 'Muslo interno y control lateral' },
+  { id: '13', title: 'ABDUCTORES', image: require('../../assets/images/WORKOUTS/CROSS.png'), exerciseGroup: 'Abductores', subtitle: 'Cadera externa y estabilidad' },
+  { id: '14', title: 'CARDIO', image: require('../../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Cardio', subtitle: 'Resistencia y capacidad aerobica' },
 ];
 
 const programs = [
-  { id: '1', title: 'Empuje de pecho', trainer: 'with Meg', image: require('../assets/images/WORKOUTS/PECHO.png'), exerciseGroup: 'Pecho' },
-  { id: '2', title: 'Espalda y agarre', trainer: 'with Akeem', image: require('../assets/images/WORKOUTS/FUERZA.png'), exerciseGroup: 'Espalda' },
-  { id: '3', title: 'Brazos completos', trainer: 'with Sofia', image: require('../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Biceps' },
-  { id: '4', title: 'Pierna dominante', trainer: 'with Daniel', image: require('../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Cuadriceps' },
+  { id: '1', title: 'Empuje de pecho', trainer: 'with Meg', image: require('../../assets/images/WORKOUTS/PECHO.png'), exerciseGroup: 'Pecho' },
+  { id: '2', title: 'Espalda y agarre', trainer: 'with Akeem', image: require('../../assets/images/WORKOUTS/FUERZA.png'), exerciseGroup: 'Espalda' },
+  { id: '3', title: 'Brazos completos', trainer: 'with Sofia', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), exerciseGroup: 'Biceps' },
+  { id: '4', title: 'Pierna dominante', trainer: 'with Daniel', image: require('../../assets/images/WORKOUTS/RUNNING.png'), exerciseGroup: 'Cuadriceps' },
 ];
 
 const matchesSearch = (item, term) => {

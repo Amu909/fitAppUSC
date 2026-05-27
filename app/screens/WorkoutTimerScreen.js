@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
 import { useNavigation } from '@react-navigation/native';
 
-import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
-import { saveWorkoutSession } from './utils/activityLog';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../ThemeContext';
+import { saveWorkoutSession } from '../utils/activityLog';
 
 const screenWidth = Dimensions.get('window').width;
 const RING_SIZE = Math.min(screenWidth * 0.76, 308);

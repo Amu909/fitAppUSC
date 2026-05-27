@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useTheme } from './ThemeContext';
+import { useTheme } from '../ThemeContext';
 
 const WorkoutExerciseDetailScreen = ({ route, navigation }) => {
   const { exercise, fallbackImage, group } = route.params;

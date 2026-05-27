@@ -13,11 +13,11 @@ import {
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
-import AIAssistantPanel from './AIAssistantPanel';
-import { estimateBodyFatPercentage } from './utils/bodyComposition';
-import { requestModuleInsight, requestNutritionFoods, requestNutritionPlan } from './utils/aiClient';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../ThemeContext';
+import AIAssistantPanel from '../AIAssistantPanel';
+import { estimateBodyFatPercentage } from '../utils/bodyComposition';
+import { requestModuleInsight, requestNutritionFoods, requestNutritionPlan } from '../utils/aiClient';
 
 const screenWidth = Dimensions.get('window').width;
 const mealOrder = ['desayuno', 'almuerzo', 'merienda', 'cena'];

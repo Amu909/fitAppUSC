@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 import AIAssistantPanel from './AIAssistantPanel';
-import { useAuth } from './AuthContext';
+import { useAuth } from './context/AuthContext';
 import { useTheme } from './ThemeContext';
 import { requestModuleInsight } from './utils/aiClient';
 import { enrichExercisesWithRemoteMedia } from './utils/exerciseMedia';

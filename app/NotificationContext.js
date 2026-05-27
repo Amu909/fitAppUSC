@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-import { useAuth } from './AuthContext';
+import { useAuth } from './context/AuthContext';
 import { safeFormatDate } from './utils/dateFormat';
 
 const NotificationContext = createContext(null);

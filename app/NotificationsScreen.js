@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useAuth } from './AuthContext';
+import { useAuth } from './context/AuthContext';
 import { useNotifications } from './NotificationContext';
 import { useTheme } from './ThemeContext';
 

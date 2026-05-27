@@ -18,7 +18,7 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, storage } from '../../firebaseconfig';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import { useTheme } from './ThemeContext';
+import { useTheme } from '../ThemeContext';
 
 const createProfileForm = (profile) => ({
   fullName: profile?.fullName || '',

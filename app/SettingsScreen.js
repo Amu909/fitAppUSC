@@ -2,7 +2,7 @@ import React from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useAuth } from './AuthContext';
+import { useAuth } from './context/AuthContext';
 import { useTheme } from './ThemeContext';
 
 const APP_VERSION = 'FITAPP 1.0.0';

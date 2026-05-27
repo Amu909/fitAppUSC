@@ -29,8 +29,8 @@ import {
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { auth, db, storage } from '../firebaseconfig';
-import { useAuth } from './AuthContext';
-import { estimateBodyFatPercentage } from './utils/bodyComposition';
+import { useAuth } from '../context/AuthContext';
+import { estimateBodyFatPercentage } from '../utils/bodyComposition';
 
 WebBrowser.maybeCompleteAuthSession();
 

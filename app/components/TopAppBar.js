@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../ThemeContext';
 
 const MAIN_LINKS = [
   { label: 'Inicio', icon: 'home-outline', navigateTo: { name: 'Main', params: { screen: 'Home' } } },

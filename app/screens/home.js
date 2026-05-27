@@ -12,15 +12,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Pedometer } from 'expo-sensors';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useAuth } from './AuthContext';
-import { useNotifications } from './NotificationContext';
-import { useTheme } from './ThemeContext';
-import { safeFormatDate } from './utils/dateFormat';
+import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../NotificationContext';
+import { useTheme } from '../ThemeContext';
+import { safeFormatDate } from '../utils/dateFormat';
 import {
   formatDurationLabel,
   getYesterdayActivityLogs,
   getYesterdayRange,
-} from './utils/activityLog';
+} from '../utils/activityLog';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -31,7 +31,7 @@ const spotlightSessions = [
     title: 'Sesion de fuerza',
     duration: '30 min',
     calories: 'Explora rutinas',
-    image: require('../assets/images/WORKOUTS/FUERZA.png'),
+    image: require('../../assets/images/WORKOUTS/FUERZA.png'),
   },
   {
     id: 'spin',
@@ -39,7 +39,7 @@ const spotlightSessions = [
     title: 'Running guiado',
     duration: 'Cardio',
     calories: 'Activa tu resistencia',
-    image: require('../assets/images/WORKOUTS/RUNNING.png'),
+    image: require('../../assets/images/WORKOUTS/RUNNING.png'),
   },
   {
     id: 'rustic',
@@ -47,7 +47,7 @@ const spotlightSessions = [
     title: 'Core intenso',
     duration: 'Movilidad',
     calories: 'Trabaja estabilidad',
-    image: require('../assets/images/WORKOUTS/HIIT.png'),
+    image: require('../../assets/images/WORKOUTS/HIIT.png'),
   },
 ];
 

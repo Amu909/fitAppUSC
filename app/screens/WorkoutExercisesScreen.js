@@ -11,12 +11,12 @@ import {
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
-import AIAssistantPanel from './AIAssistantPanel';
-import { requestModuleInsight } from './utils/aiClient';
-import { enrichExercisesWithRemoteMedia } from './utils/exerciseMedia';
-import { EXERCISE_LIBRARY, SEARCH_HINTS } from './utils/workoutLibrary';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../ThemeContext';
+import AIAssistantPanel from '../AIAssistantPanel';
+import { requestModuleInsight } from '../utils/aiClient';
+import { enrichExercisesWithRemoteMedia } from '../utils/exerciseMedia';
+import { EXERCISE_LIBRARY, SEARCH_HINTS } from '../utils/workoutLibrary';
 
 const getLevelStyle = (level) => {
   switch (level) {
