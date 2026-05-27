@@ -5,7 +5,7 @@
   },
   "build": {
     "preview": {
-      "credentialsSource": "local",
+      "credentialsSource": "remote",
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://fitappusc-backend.onrender.com"
       },
