@@ -2,8 +2,13 @@ node_modules/
 .git/
 .expo/
 .pytest_cache/
+.pytest_cache/**
 pytest-cache-files-*/
+pytest-cache-files-*
 __pycache__/
+__pycache__/**
 *.pyc
 reportes/
 stress/
+backend.err.log
+backend.out.log

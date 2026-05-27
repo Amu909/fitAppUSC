@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,63 +11,12 @@ import {
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-
-const EXERCISE_LIBRARY = {
-  Brazos: [
-    { name: 'Curl de biceps', reps: '4 x 12', focus: 'Biceps braquial', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Movimiento controlado para desarrollar fuerza en biceps y antebrazo.' },
-    { name: 'Fondos en banco', reps: '4 x 10', focus: 'Triceps', level: 'Principiante', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Ejercicio de empuje para activar la parte posterior del brazo.' },
-    { name: 'Curl martillo', reps: '3 x 12', focus: 'Braquial y antebrazo', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Variante ideal para mejorar volumen y estabilidad de agarre.' },
-    { name: 'Extension de triceps', reps: '3 x 15', focus: 'Triceps', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/BRAZOS.png'), description: 'Aislamiento para potenciar extension completa del codo.' },
-  ],
-  Cardio: [
-    { name: 'Trote continuo', reps: '20 min', focus: 'Resistencia aerobica', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Trabajo constante para mejorar resistencia y recuperacion cardiaca.' },
-    { name: 'Sprints cortos', reps: '10 x 30 s', focus: 'Velocidad y potencia', level: 'Avanzado', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Intervalico de alta intensidad para velocidad y potencia.' },
-    { name: 'Saltos de cuerda', reps: '5 x 2 min', focus: 'Capacidad cardiovascular', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Movimiento ritmico que eleva pulsaciones y coordinacion.' },
-    { name: 'Burpees', reps: '4 x 12', focus: 'Trabajo metabolico', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Patron global para mejorar acondicionamiento fisico general.' },
-  ],
-  'Fuerza total': [
-    { name: 'Sentadilla', reps: '4 x 10', focus: 'Piernas y core', level: 'Principiante', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Base de fuerza para tren inferior y control postural.' },
-    { name: 'Peso muerto', reps: '4 x 8', focus: 'Cadena posterior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Ejercicio compuesto para gluteos, espalda y femoral.' },
-    { name: 'Press militar', reps: '4 x 10', focus: 'Hombros y triceps', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Empuje vertical para fuerza de hombros y control del core.' },
-    { name: 'Remo con barra', reps: '4 x 10', focus: 'Espalda', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Tiron horizontal enfocado en espalda media y dorsales.' },
-  ],
-  Pecho: [
-    { name: 'Press plano', reps: '4 x 10', focus: 'Pectoral mayor', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/PECHO.png'), description: 'Ejercicio principal de empuje horizontal para desarrollo del pecho.' },
-    { name: 'Flexiones', reps: '4 x 15', focus: 'Pecho y core', level: 'Principiante', image: require('../../assets/images/WORKOUTS/PECHO.png'), description: 'Patron basico de empuje con control de tronco y hombros.' },
-    { name: 'Aperturas con mancuernas', reps: '3 x 12', focus: 'Pectoral', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/PECHO.png'), description: 'Movimiento de apertura para trabajo analitico del pectoral.' },
-    { name: 'Press inclinado', reps: '3 x 10', focus: 'Pecho superior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/PECHO.png'), description: 'Variante de empuje para enfatizar la zona clavicular.' },
-  ],
-  Espalda: [
-    { name: 'Dominadas', reps: '4 x 8', focus: 'Dorsales', level: 'Avanzado', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Tiron vertical de alta demanda para dorsal y agarre.' },
-    { name: 'Remo con mancuerna', reps: '4 x 12', focus: 'Espalda media', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Trabajo unilateral para corregir asimetrias y ganar control.' },
-    { name: 'Jalon al pecho', reps: '3 x 12', focus: 'Dorsal ancho', level: 'Principiante', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Alternativa guiada para construir fuerza en espalda.' },
-    { name: 'Face pulls', reps: '3 x 15', focus: 'Trapecio y deltoide posterior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Ejercicio correctivo para hombro y postura.' },
-  ],
-  Piernas: [
-    { name: 'Sentadilla goblet', reps: '4 x 12', focus: 'Cuadriceps y gluteos', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Sentadilla accesible para aprender patron de movimiento.' },
-    { name: 'Zancadas', reps: '3 x 12 por pierna', focus: 'Piernas y estabilidad', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Trabajo unilateral para fuerza, coordinacion y equilibrio.' },
-    { name: 'Hip thrust', reps: '4 x 10', focus: 'Gluteos', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Empuje de cadera para desarrollar potencia posterior.' },
-    { name: 'Elevacion de talones', reps: '4 x 20', focus: 'Pantorrillas', level: 'Principiante', image: require('../../assets/images/WORKOUTS/RUNNING.png'), description: 'Aislamiento de gemelos con alto volumen.' },
-  ],
-  Hombros: [
-    { name: 'Press militar con mancuernas', reps: '4 x 10', focus: 'Deltoides anterior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Empuje vertical con recorrido controlado y estable.' },
-    { name: 'Elevaciones laterales', reps: '4 x 15', focus: 'Deltoide medio', level: 'Principiante', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Trabajo analitico para anchura visual del hombro.' },
-    { name: 'Pajaros', reps: '3 x 15', focus: 'Deltoide posterior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Movimiento clave para hombro posterior y postura.' },
-    { name: 'Encogimientos', reps: '3 x 15', focus: 'Trapecio', level: 'Principiante', image: require('../../assets/images/WORKOUTS/FUERZA.png'), description: 'Trabajo puntual de trapecio superior.' },
-  ],
-  Core: [
-    { name: 'Plancha frontal', reps: '4 x 40 s', focus: 'Abdomen profundo', level: 'Principiante', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Estabilizacion central para mejorar control del tronco.' },
-    { name: 'Crunch bicicleta', reps: '4 x 20', focus: 'Oblicuos', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Patron dinamico orientado a oblicuos y coordinacion.' },
-    { name: 'Elevaciones de piernas', reps: '4 x 15', focus: 'Abdomen inferior', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Trabajo de flexion de cadera y control abdominal.' },
-    { name: 'Mountain climbers', reps: '4 x 30 s', focus: 'Core y cardio', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/HIIT.png'), description: 'Ejercicio dinamico para abdomen y acondicionamiento.' },
-  ],
-  Gluteos: [
-    { name: 'Hip thrust', reps: '4 x 12', focus: 'Gluteo mayor', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Movimiento dominante de cadera para potencia de gluteo.' },
-    { name: 'Patada de gluteo', reps: '3 x 15 por pierna', focus: 'Extension de cadera', level: 'Principiante', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Aislamiento simple para activacion glutea.' },
-    { name: 'Sentadilla sumo', reps: '4 x 12', focus: 'Gluteos y aductores', level: 'Intermedio', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Variante amplia para gluteo y muslo interno.' },
-    { name: 'Puente de gluteo', reps: '4 x 15', focus: 'Activacion y fuerza', level: 'Principiante', image: require('../../assets/images/WORKOUTS/CROSS.png'), description: 'Ejercicio base para activar la cadena posterior.' },
-  ],
-};
+import { useAuth } from './AuthContext';
+import { useTheme } from './ThemeContext';
+import AIAssistantPanel from './AIAssistantPanel';
+import { requestModuleInsight } from './utils/aiClient';
+import { enrichExercisesWithRemoteMedia } from './utils/exerciseMedia';
+import { EXERCISE_LIBRARY, SEARCH_HINTS } from './utils/workoutLibrary';
 
 const getLevelStyle = (level) => {
   switch (level) {
@@ -81,6 +32,7 @@ const getLevelStyle = (level) => {
 };
 
 const AnimatedExerciseCard = ({ exercise, index, onPress }) => {
+  const { theme, isDark } = useTheme();
   const translateY = useRef(new Animated.Value(24)).current;
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -94,22 +46,30 @@ const AnimatedExerciseCard = ({ exercise, index, onPress }) => {
   const levelStyle = getLevelStyle(exercise.level);
 
   return (
-    <Animated.View style={[styles.exerciseCard, { opacity, transform: [{ translateY }] }]}>
+    <Animated.View style={[styles.exerciseCard, { backgroundColor: theme.surface, borderColor: theme.border, shadowOpacity: isDark ? 0 : 0.05, elevation: isDark ? 0 : 2, opacity, transform: [{ translateY }] }]}>
       <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
         <View style={styles.exerciseTopRow}>
-          <View style={styles.exerciseBadge}>
-            <Text style={styles.exerciseBadgeText}>{String(index + 1).padStart(2, '0')}</Text>
-          </View>
+          {exercise.remoteMedia?.gifUrl ? (
+            <Image
+              source={{ uri: exercise.remoteMedia.gifUrl }}
+              style={styles.exerciseThumb}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.exerciseBadge}>
+              <Text style={styles.exerciseBadgeText}>{String(index + 1).padStart(2, '0')}</Text>
+            </View>
+          )}
           <View style={styles.exerciseHeading}>
-            <Text style={styles.exerciseName}>{exercise.name}</Text>
-            <Text style={styles.exerciseFocus}>{exercise.focus}</Text>
+            <Text style={[styles.exerciseName, { color: theme.text }]}>{exercise.name}</Text>
+            <Text style={[styles.exerciseFocus, { color: theme.textMuted }]}>{exercise.focus}</Text>
           </View>
           <View style={[styles.levelPill, { backgroundColor: levelStyle.backgroundColor }]}>
             <Text style={[styles.levelText, { color: levelStyle.color }]}>{exercise.level}</Text>
           </View>
         </View>
         <View style={styles.exerciseMetaRow}>
-          <Text style={styles.metaLabel}>Volumen</Text>
+          <Text style={[styles.metaLabel, { color: theme.textMuted }]}>Volumen</Text>
           <Text style={styles.exerciseReps}>{exercise.reps}</Text>
         </View>
       </TouchableOpacity>
@@ -119,9 +79,32 @@ const AnimatedExerciseCard = ({ exercise, index, onPress }) => {
 
 const WorkoutExercisesScreen = ({ route }) => {
   const navigation = useNavigation();
+  const { userProfile } = useAuth();
+  const { theme, isDark } = useTheme();
   const { group, title, subtitle, coverImage } = route.params;
   const [searchText, setSearchText] = useState('');
-  const allExercises = useMemo(() => EXERCISE_LIBRARY[group] || [], [group]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiInsight, setAiInsight] = useState('');
+  const [allExercises, setAllExercises] = useState(EXERCISE_LIBRARY[group] || []);
+
+  useEffect(() => {
+    let active = true;
+    const baseExercises = EXERCISE_LIBRARY[group] || [];
+    setAllExercises(baseExercises);
+
+    const loadRemoteMedia = async () => {
+      const enriched = await enrichExercisesWithRemoteMedia(baseExercises, group);
+      if (active) {
+        setAllExercises(enriched);
+      }
+    };
+
+    loadRemoteMedia();
+
+    return () => {
+      active = false;
+    };
+  }, [group]);
 
   const exercises = useMemo(() => {
     if (!searchText) return allExercises;
@@ -130,21 +113,62 @@ const WorkoutExercisesScreen = ({ route }) => {
     );
   }, [allExercises, searchText]);
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.kicker}>Biblioteca de ejercicios</Text>
-      <Text style={styles.title}>{title || group}</Text>
-      <Text style={styles.subtitle}>{subtitle || `Seleccion de ejercicios para ${group}`}</Text>
+  const searchPlaceholder = SEARCH_HINTS[group] || 'Busca ejercicios dentro de este grupo';
 
-      <View style={styles.heroCard}>
-        <Text style={styles.heroTitle}>Busca en vivo</Text>
-        <Text style={styles.heroText}>Escribe y el filtrado se aplica de inmediato, sin necesidad de pulsar un boton.</Text>
+  const handleGroupAI = async () => {
+    setAiLoading(true);
+    try {
+      const result = await requestModuleInsight({
+        module: 'Detalle de rutina',
+        intent: `Personaliza una sesion de ${title || group} con orden de ejercicios, volumen, descansos y ajustes por nivel.`,
+        userProfile,
+        moduleData: {
+          grupo: group,
+          titulo: title,
+          subtitulo: subtitle,
+          busqueda_actual: searchText,
+          ejercicios: allExercises.map((exercise) => ({
+            nombre: exercise.name,
+            volumen: exercise.reps,
+            foco: exercise.focus,
+            nivel: exercise.level,
+            descripcion: exercise.description,
+          })),
+        },
+      });
+      setAiInsight(result.insight);
+    } catch (error) {
+      Alert.alert('IA no disponible', 'No fue posible personalizar esta rutina.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  return (
+    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={styles.content}>
+      <Text style={[styles.kicker, { color: theme.primary }]}>Biblioteca de ejercicios</Text>
+      <Text style={[styles.title, { color: theme.text }]}>{title || group}</Text>
+      <Text style={[styles.subtitle, { color: theme.textMuted }]}>{subtitle || `Seleccion de ejercicios para ${group}`}</Text>
+
+      <AIAssistantPanel
+        title="Personalizacion inteligente"
+        subtitle="Ajusta esta sesion segun tu perfil, objetivo y nivel de esfuerzo."
+        buttonLabel="Personalizar sesion"
+        loading={aiLoading}
+        insight={aiInsight}
+        onPress={handleGroupAI}
+      />
+
+      <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Text style={[styles.heroTitle, { color: theme.text }]}>Busca en vivo</Text>
+        <Text style={[styles.heroText, { color: theme.textMuted }]}>Escribe y el filtrado se aplica de inmediato, sin necesidad de pulsar un boton.</Text>
       </View>
 
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <TextInput
-          placeholder="Busca ejercicios, por ejemplo press plano"
-          style={styles.searchInput}
+          placeholder={searchPlaceholder}
+          placeholderTextColor={theme.textSoft}
+          style={[styles.searchInput, { color: theme.text }]}
           value={searchText}
           onChangeText={setSearchText}
           autoCorrect={false}
@@ -160,15 +184,16 @@ const WorkoutExercisesScreen = ({ route }) => {
             onPress={() =>
               navigation.navigate('WorkoutExerciseDetailScreen', {
                 exercise,
+                group,
                 fallbackImage: exercise.image || coverImage,
               })
             }
           />
         ))}
         {!exercises.length ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No encontramos ejercicios</Text>
-            <Text style={styles.emptyText}>Prueba con otra palabra clave dentro de este grupo.</Text>
+          <View style={[styles.emptyState, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No encontramos ejercicios</Text>
+            <Text style={[styles.emptyText, { color: theme.textMuted }]}>Prueba con otra palabra clave dentro de este grupo.</Text>
           </View>
         ) : null}
       </View>
@@ -176,8 +201,8 @@ const WorkoutExercisesScreen = ({ route }) => {
       <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate('WorkoutTimerScreen', { type: title || group })}>
         <Text style={styles.primaryButtonText}>Iniciar sesion</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.secondaryButtonText}>Volver a rutinas</Text>
+      <TouchableOpacity style={[styles.secondaryButton, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={() => navigation.goBack()}>
+        <Text style={[styles.secondaryButtonText, { color: theme.text }]}>Volver a rutinas</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -199,6 +224,7 @@ const styles = StyleSheet.create({
   exerciseTopRow: { flexDirection: 'row', alignItems: 'center' },
   exerciseBadge: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#111827', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   exerciseBadgeText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  exerciseThumb: { width: 64, height: 64, borderRadius: 14, marginRight: 12, backgroundColor: '#e5e7eb' },
   exerciseHeading: { flex: 1, paddingRight: 10 },
   exerciseName: { fontSize: 17, fontWeight: '700', color: '#111827' },
   exerciseFocus: { fontSize: 13, color: '#6b7280', marginTop: 4 },

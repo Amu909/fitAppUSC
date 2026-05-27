@@ -28,8 +28,9 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { auth, db, storage } from '../../firebaseconfig';
-import { useAuth } from '../context/AuthContext';
+import { auth, db, storage } from '../firebaseconfig';
+import { useAuth } from './AuthContext';
+import { estimateBodyFatPercentage } from './utils/bodyComposition';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -38,6 +39,18 @@ const GOALS = [
   { key: 'gain_muscle', label: 'Ganar musculo', icon: 'barbell-outline' },
   { key: 'maintain', label: 'Mantenerme', icon: 'fitness-outline' },
   { key: 'athletic', label: 'Rendimiento', icon: 'flash-outline' },
+];
+
+const GENDERS = [
+  { key: 'male', label: 'Hombre' },
+  { key: 'female', label: 'Mujer' },
+];
+
+const ACTIVITY_LEVELS = [
+  { key: 'sedentary', label: 'Sedentario' },
+  { key: 'light', label: 'Ligero' },
+  { key: 'moderate', label: 'Moderado' },
+  { key: 'active', label: 'Activo' },
 ];
 
 const STEPS = [
@@ -56,7 +69,14 @@ const initialRegister = {
   age: '',
   weight: '',
   height: '',
+  gender: 'male',
+  activity_level: 'moderate',
   goal: 'maintain',
+  allergies: '',
+  preferences: '',
+  waist_circumference: '',
+  neck_circumference: '',
+  hip_circumference: '',
   isVegetarian: false,
   isDiabetic: false,
   isHypertensive: false,
@@ -73,6 +93,14 @@ const BOOTSTRAP_ADMIN = {
   email: 'admin@fitapp.com',
   password: 'FitAppAdmin123*',
 };
+
+const withTimeout = (promise, ms, message) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(message)), ms);
+    }),
+  ]);
 
 const hasGoogleConfig = Object.values(GOOGLE_IDS).some((v) => !String(v).startsWith('pending-'));
 
@@ -166,6 +194,14 @@ export default function Login() {
         age: extra.age ?? null,
         weight: extra.weight ?? null,
         height: extra.height ?? null,
+        gender: extra.gender || 'male',
+        activity_level: extra.activity_level || 'moderate',
+        allergies: extra.allergies || '',
+        preferences: extra.preferences || '',
+        body_fat_percentage: extra.body_fat_percentage ?? null,
+        waist_circumference: extra.waist_circumference ?? null,
+        neck_circumference: extra.neck_circumference ?? null,
+        hip_circumference: extra.hip_circumference ?? null,
         isVegetarian: extra.isVegetarian ?? false,
         isDiabetic: extra.isDiabetic ?? false,
         isHypertensive: extra.isHypertensive ?? false,
@@ -207,11 +243,26 @@ export default function Login() {
 
   const uploadPhoto = async (uid, uri) => {
     if (!uri) return '';
-    const result = await fetch(uri);
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      throw new Error('La subida de fotos desde localhost requiere configurar CORS en Firebase Storage.');
+    }
+    const result = await withTimeout(
+      fetch(uri),
+      12000,
+      'No fue posible procesar la foto a tiempo.'
+    );
     const blob = await result.blob();
     const fileRef = ref(storage, `profile_photos/${uid}.jpg`);
-    await uploadBytes(fileRef, blob);
-    return getDownloadURL(fileRef);
+    await withTimeout(
+      uploadBytes(fileRef, blob),
+      15000,
+      'La foto no pudo subirse a tiempo.'
+    );
+    return withTimeout(
+      getDownloadURL(fileRef),
+      10000,
+      'No fue posible obtener la URL de la foto.'
+    );
   };
 
   const loginWithEmail = async () => {
@@ -224,7 +275,7 @@ export default function Login() {
       const signed = await signInWithEmailAndPassword(auth, email.trim(), password);
       await ensureUserDoc(signed.user);
       await refreshProfile();
-    } catch {
+    } catch (error) {
       const isBootstrapLogin =
         email.trim().toLowerCase() === BOOTSTRAP_ADMIN.email &&
         password === BOOTSTRAP_ADMIN.password;
@@ -245,7 +296,25 @@ export default function Login() {
         }
       }
 
-      Alert.alert('Acceso', 'No fue posible iniciar sesion con esas credenciales.');
+      const authCode = error?.code || '';
+      const authMessage =
+        authCode === 'auth/invalid-credential'
+          ? 'Correo o contrasena incorrectos.'
+          : authCode === 'auth/user-not-found'
+            ? 'No existe una cuenta con ese correo.'
+            : authCode === 'auth/wrong-password'
+              ? 'La contrasena no coincide.'
+              : authCode === 'auth/invalid-email'
+                ? 'El correo no tiene un formato valido.'
+                : authCode === 'auth/too-many-requests'
+                  ? 'Demasiados intentos. Espera un momento antes de volver a intentar.'
+                  : authCode === 'auth/network-request-failed'
+                    ? 'No hubo conexion con Firebase. Revisa internet y vuelve a intentar.'
+                    : authCode === 'auth/configuration-not-found'
+                      ? 'Email/Password no esta habilitado en Firebase Authentication.'
+                      : `No fue posible iniciar sesion (${authCode || 'error-desconocido'}).`;
+
+      Alert.alert('Acceso', authMessage);
     } finally {
       setLoading(false);
     }
@@ -262,9 +331,15 @@ export default function Login() {
     }
     setLoading(true);
     try {
+      const estimatedBodyFat = estimateBodyFatPercentage({
+        weight: register.weight,
+        height: register.height,
+        age: register.age,
+        gender: register.gender,
+      });
+
       const created = await createUserWithEmailAndPassword(auth, register.email.trim(), register.password);
-      const photoURL = await uploadPhoto(created.user.uid, register.photoUri);
-      await setDoc(doc(db, 'users', created.user.uid), {
+      const profilePayload = {
         uid: created.user.uid,
         email: created.user.email,
         fullName: register.fullName.trim(),
@@ -272,18 +347,52 @@ export default function Login() {
         age: Number(register.age),
         weight: Number(register.weight),
         height: Number(register.height),
+        gender: register.gender,
+        activity_level: register.activity_level,
         goal: register.goal,
+        allergies: register.allergies.trim(),
+        preferences: register.preferences.trim(),
+        body_fat_percentage: estimatedBodyFat,
+        waist_circumference: register.waist_circumference ? Number(register.waist_circumference) : null,
+        neck_circumference: register.neck_circumference ? Number(register.neck_circumference) : null,
+        hip_circumference: register.hip_circumference ? Number(register.hip_circumference) : null,
         isVegetarian: register.isVegetarian,
         isDiabetic: register.isDiabetic,
         isHypertensive: register.isHypertensive,
-        photoURL,
+        photoURL: '',
         active: true,
         createdAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),
-      });
+      };
+
+      await setDoc(doc(db, 'users', created.user.uid), profilePayload);
+
+      if (register.photoUri) {
+        try {
+          const photoURL = await uploadPhoto(created.user.uid, register.photoUri);
+          await setDoc(doc(db, 'users', created.user.uid), { photoURL }, { merge: true });
+        } catch {
+          Alert.alert(
+            'Foto pendiente',
+            'Tu cuenta y datos se guardaron. Puedes subir la foto despues desde Perfil.'
+          );
+        }
+      }
+
       await refreshProfile();
-    } catch {
-      Alert.alert('Registro', 'No fue posible crear la cuenta.');
+    } catch (error) {
+      const authCode = error?.code || '';
+      const authMessage =
+        authCode === 'auth/email-already-in-use'
+          ? 'Ese correo ya esta registrado.'
+          : authCode === 'auth/invalid-email'
+            ? 'El correo no tiene un formato valido.'
+            : authCode === 'auth/weak-password'
+              ? 'La contrasena es demasiado debil.'
+              : authCode === 'auth/configuration-not-found'
+                ? 'Email/Password no esta habilitado en Firebase Authentication.'
+                : `No fue posible crear la cuenta (${authCode || 'error-desconocido'}).`;
+      Alert.alert('Registro', authMessage);
     } finally {
       setLoading(false);
     }
@@ -445,6 +554,34 @@ export default function Login() {
           {renderInput('calendar-outline', 'Edad', register.age, (v) => updateRegister('age', v))}
           {renderInput('barbell-outline', 'Peso en kg', register.weight, (v) => updateRegister('weight', v))}
           {renderInput('resize-outline', 'Estatura en cm', register.height, (v) => updateRegister('height', v))}
+          <Text style={styles.inlineLabel}>Genero</Text>
+          <View style={styles.inlineOptions}>
+            {GENDERS.map((item) => (
+              <TouchableOpacity
+                key={item.key}
+                style={[styles.inlineOption, register.gender === item.key && styles.inlineOptionActive]}
+                onPress={() => updateRegister('gender', item.key)}
+              >
+                <Text style={[styles.inlineOptionText, register.gender === item.key && styles.inlineOptionTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.inlineLabel}>Actividad diaria</Text>
+          <View style={styles.inlineOptions}>
+            {ACTIVITY_LEVELS.map((item) => (
+              <TouchableOpacity
+                key={item.key}
+                style={[styles.inlineOption, register.activity_level === item.key && styles.inlineOptionActive]}
+                onPress={() => updateRegister('activity_level', item.key)}
+              >
+                <Text style={[styles.inlineOptionText, register.activity_level === item.key && styles.inlineOptionTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </>
       );
     }
@@ -458,17 +595,27 @@ export default function Login() {
     }
     if (key === 'conditions') {
       return (
-        <View style={styles.chips}>
-          {[
-            ['isVegetarian', 'Vegetariano'],
-            ['isDiabetic', 'Diabetico'],
-            ['isHypertensive', 'Hipertenso'],
-          ].map(([field, label]) => (
-            <TouchableOpacity key={field} style={[styles.chip, register[field] && styles.chipActive]} onPress={() => updateRegister(field, !register[field])}>
-              <Text style={[styles.chipText, register[field] && styles.chipTextActive]}>{label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <>
+          <View style={styles.chips}>
+            {[
+              ['isVegetarian', 'Vegetariano'],
+              ['isDiabetic', 'Diabetico'],
+              ['isHypertensive', 'Hipertenso'],
+            ].map(([field, label]) => (
+              <TouchableOpacity key={field} style={[styles.chip, register[field] && styles.chipActive]} onPress={() => updateRegister(field, !register[field])}>
+                <Text style={[styles.chipText, register[field] && styles.chipTextActive]}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {renderInput('warning-outline', 'Alergias separadas por coma', register.allergies, (v) => updateRegister('allergies', v))}
+          {renderInput('restaurant-outline', 'Preferencias alimentarias', register.preferences, (v) => updateRegister('preferences', v))}
+          <Text style={styles.inlineLabel}>Medidas avanzadas opcionales</Text>
+          {renderInput('resize-outline', 'Cintura en cm', register.waist_circumference, (v) => updateRegister('waist_circumference', v))}
+          {renderInput('remove-outline', 'Cuello en cm', register.neck_circumference, (v) => updateRegister('neck_circumference', v))}
+          {register.gender === 'female'
+            ? renderInput('git-compare-outline', 'Cadera en cm', register.hip_circumference, (v) => updateRegister('hip_circumference', v))
+            : null}
+        </>
       );
     }
     return (
@@ -620,6 +767,12 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: '#111827', borderColor: '#111827' },
   chipText: { color: '#374151', fontWeight: '700', fontSize: 13 },
   chipTextActive: { color: '#fff' },
+  inlineLabel: { color: '#111827', fontWeight: '800', fontSize: 13, marginTop: 4, marginBottom: 10 },
+  inlineOptions: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 },
+  inlineOption: { borderRadius: 14, borderWidth: 1, borderColor: '#dbe1ea', paddingHorizontal: 13, paddingVertical: 10, marginRight: 8, marginBottom: 8, backgroundColor: '#fff' },
+  inlineOptionActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+  inlineOptionText: { color: '#374151', fontSize: 13, fontWeight: '800' },
+  inlineOptionTextActive: { color: '#fff' },
   photoBox: { height: 190, borderRadius: 24, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#f43f5e', backgroundColor: '#fff1f2', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   photo: { width: '100%', height: '100%' },
   photoText: { marginTop: 10, color: '#e11d48', fontWeight: '700' },

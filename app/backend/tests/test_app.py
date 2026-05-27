@@ -191,6 +191,132 @@ class ApiEndpointTests(unittest.TestCase):
         self.assertTrue(any("hiit" in item.lower() for item in suggestions))
 
     @patch.object(backend_app.chatbot, "send_message", new_callable=AsyncMock)
+    def test_module_assistant_uses_profile_and_module_context(self, send_message_mock):
+        send_message_mock.return_value = "Rutina personalizada"
+
+        response = self.client.post(
+            "/ai/module-assistant",
+            json={
+                "module": "Rutinas",
+                "intent": "Genera una rutina semanal",
+                "user_profile": {"goal": "gain_muscle", "isVegetarian": True},
+                "module_data": {"grupo": "Piernas", "dias": 4},
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["insight"], "Rutina personalizada")
+        awaited_kwargs = send_message_mock.await_args.kwargs
+        self.assertEqual(
+            awaited_kwargs["user_profile"],
+            {"goal": "gain_muscle", "isVegetarian": True},
+        )
+        self.assertIn("Rutinas", awaited_kwargs["user_message"])
+        self.assertIn('"grupo": "Piernas"', awaited_kwargs["user_message"])
+
+    def test_integrated_nutrition_plan_uses_food_dataset(self):
+        response = self.client.post(
+            "/generate-comprehensive-plan",
+            json={
+                "weight": 74,
+                "height": 176,
+                "age": 30,
+                "gender": "male",
+                "activity_level": "moderate",
+                "goal": "athletic",
+                "allergies": [],
+                "preferences": [],
+                "medical_conditions": [],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("desayuno", payload["plan_alimentario"])
+        self.assertGreater(payload["dataset"]["alimentos_evaluados"], 0)
+        self.assertEqual(payload["dataset"]["fuente"], "Food_and_Nutrition.csv")
+        self.assertIn("contexto_dieta", payload)
+        self.assertIn("enfoque_principal", payload["contexto_dieta"])
+
+    def test_integrated_nutrition_plan_balances_main_meals_by_role(self):
+        response = self.client.post(
+            "/generate-comprehensive-plan",
+            json={
+                "weight": 74,
+                "height": 176,
+                "age": 30,
+                "gender": "male",
+                "activity_level": "moderate",
+                "goal": "maintain",
+                "allergies": [],
+                "preferences": [],
+                "medical_conditions": [],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        meals = response.json()["plan_alimentario"]
+
+        for meal_name in ("desayuno", "almuerzo", "cena"):
+            foods = meals[meal_name]
+            categories = {item["category"].lower() for item in foods}
+
+            self.assertTrue(
+                any(backend_app.food_matches_role(item, "protein") for item in foods),
+                f"{meal_name} debe incluir una fuente proteica",
+            )
+            self.assertTrue(
+                any(backend_app.food_matches_role(item, "complex_carb") for item in foods),
+                f"{meal_name} debe incluir un carbohidrato complejo o vegetal estructural",
+            )
+            self.assertFalse(
+                categories.issubset({"fruits", "beverages"}),
+                f"{meal_name} no debe quedar compuesto solo por frutas o bebidas",
+            )
+
+    def test_build_meal_plan_avoids_snack_or_beverage_only_lunch(self):
+        foods = [
+            {"food": "Apple Juice", "category": "Beverages", "meal_type": "Lunch", "calories_per_100g": 120, "protein": 1, "carbs": 24, "fat": 0, "fiber": 0, "sugars": 20, "sodium": 12, "cholesterol": 0, "water_intake": 200},
+            {"food": "Cookies", "category": "Snacks", "meal_type": "Lunch", "calories_per_100g": 210, "protein": 3, "carbs": 30, "fat": 8, "fiber": 1, "sugars": 18, "sodium": 130, "cholesterol": 0, "water_intake": 30},
+            {"food": "Chicken Breast", "category": "Meat", "meal_type": "Lunch", "calories_per_100g": 180, "protein": 31, "carbs": 0, "fat": 4, "fiber": 0, "sugars": 0, "sodium": 90, "cholesterol": 70, "water_intake": 0},
+            {"food": "Rice", "category": "Grains", "meal_type": "Lunch", "calories_per_100g": 130, "protein": 3, "carbs": 28, "fat": 1, "fiber": 2, "sugars": 0, "sodium": 5, "cholesterol": 0, "water_intake": 0},
+            {"food": "Broccoli", "category": "Vegetables", "meal_type": "Lunch", "calories_per_100g": 55, "protein": 4, "carbs": 11, "fat": 0.5, "fiber": 4, "sugars": 2, "sodium": 30, "cholesterol": 0, "water_intake": 0},
+        ]
+
+        plan = backend_app.build_meal_plan(foods, 2200)
+        lunch = plan["almuerzo"]
+        lunch_names = {item["food"] for item in lunch}
+
+        self.assertIn("Chicken Breast", lunch_names)
+        self.assertIn("Rice", lunch_names)
+        self.assertTrue(any(item["category"] == "Vegetables" for item in lunch))
+
+    def test_build_meal_plan_discourages_breakfast_like_lunch_combos(self):
+        foods = [
+            {"food": "Bread", "category": "Grains", "meal_type": "Lunch", "calories_per_100g": 292, "protein": 12, "carbs": 47.3, "fat": 6.1, "fiber": 3, "sugars": 5, "sodium": 120, "cholesterol": 0, "water_intake": 20},
+            {"food": "Yogurt", "category": "Dairy", "meal_type": "Lunch", "calories_per_100g": 292, "protein": 40.9, "carbs": 72.1, "fat": 38.4, "fiber": 0.5, "sugars": 8, "sodium": 90, "cholesterol": 15, "water_intake": 30},
+            {"food": "Rice", "category": "Grains", "meal_type": "Lunch", "calories_per_100g": 293, "protein": 37.5, "carbs": 27.4, "fat": 3.3, "fiber": 2.4, "sugars": 1, "sodium": 10, "cholesterol": 0, "water_intake": 0},
+            {"food": "Beef Steak", "category": "Meat", "meal_type": "Lunch", "calories_per_100g": 294, "protein": 36.0, "carbs": 0, "fat": 9.4, "fiber": 0, "sugars": 0, "sodium": 80, "cholesterol": 65, "water_intake": 0},
+            {"food": "Broccoli", "category": "Vegetables", "meal_type": "Lunch", "calories_per_100g": 95, "protein": 8.0, "carbs": 14.0, "fat": 1.1, "fiber": 5.0, "sugars": 2, "sodium": 25, "cholesterol": 0, "water_intake": 0},
+        ]
+
+        plan = backend_app.build_meal_plan(foods, 2200)
+        lunch_names = {item["food"] for item in plan["almuerzo"]}
+
+        self.assertIn("Beef Steak", lunch_names)
+        self.assertIn("Rice", lunch_names)
+        self.assertIn("Broccoli", lunch_names)
+        self.assertNotIn("Yogurt", lunch_names)
+
+    def test_food_catalog_returns_dataset_items(self):
+        response = self.client.get("/nutrition/foods", params={"limit": 5})
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertLessEqual(len(payload["foods"]), 5)
+        self.assertIn("categories", payload)
+
+    @patch.object(backend_app.chatbot, "send_message", new_callable=AsyncMock)
     def test_analyze_routine_endpoint_builds_analysis_prompt(self, send_message_mock):
         send_message_mock.return_value = "Buen balance"
         routine = {"days": 4, "focus": "cardio"}
@@ -225,6 +351,16 @@ class ApiEndpointTests(unittest.TestCase):
         payload = response.json()
         self.assertEqual(payload["status"], "Chatbot Nutricional funcionando")
         self.assertIn("Rutinas de ejercicio", payload["capabilities"])
+        self.assertIn("ai_configured", payload)
+
+    def test_ai_status_endpoint_reports_configuration(self):
+        response = self.client.get("/ai/status")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["provider"], "Groq")
+        self.assertIn("configured", payload)
+        self.assertIn("/chat", payload["available_endpoints"])
 
 
 if __name__ == "__main__":

@@ -1,301 +1,404 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
+  ActivityIndicator,
+  Animated,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
-  Dimensions,
-  Animated
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import axios from 'axios';
+import { Ionicons } from '@expo/vector-icons';
+import { getAiStatus, requestChatMessage, requestChatSuggestions } from './utils/aiClient';
+import { useTheme } from './ThemeContext';
 
-const screenWidth = Dimensions.get('window').width;
-const screenHeight = Dimensions.get('window').height;
+const INITIAL_MESSAGE = {
+  role: 'assistant',
+  content:
+    'Hola, soy FitBot. Estoy listo para ayudarte con nutricion, rutinas, progreso y decisiones diarias para que tu plan sea mas claro y sostenible.',
+  timestamp: new Date(),
+};
+
+const sanitizeSuggestionText = (suggestion) =>
+  suggestion
+    .replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const buildChatPayload = (messageText, messages, userProfile) => ({
+  message: messageText,
+  conversation_history: messages.map((msg) => ({
+    role: msg.role,
+    content: msg.content,
+  })),
+  user_profile: userProfile,
+});
+
+function FitBotLogo({ size = 42, compact = false }) {
+  const headSize = size * 0.5;
+  const eyeWidth = headSize * 0.14;
+  const eyeHeight = headSize * 0.2;
+
+  return (
+    <View
+      style={[
+        styles.logoShell,
+        {
+          width: size,
+          height: size,
+          borderRadius: compact ? 14 : 18,
+        },
+      ]}
+    >
+      <View style={[styles.logoAntenna, { top: size * 0.08, height: size * 0.12 }]} />
+      <View style={[styles.logoDot, { top: size * 0.02, width: size * 0.12, height: size * 0.12, borderRadius: size * 0.06 }]} />
+      <View style={[styles.logoHead, { width: headSize, height: headSize, borderRadius: headSize * 0.3 }]}>
+        <View style={[styles.logoEye, { width: eyeWidth, height: eyeHeight, borderRadius: eyeWidth / 2 }]} />
+        <View style={[styles.logoEye, { width: eyeWidth, height: eyeHeight, borderRadius: eyeWidth / 2 }]} />
+      </View>
+      {!compact ? (
+        <View style={styles.logoBodyRow}>
+          <View style={styles.logoArm} />
+          <Ionicons name="barbell" size={size * 0.28} color="#ffffff" />
+          <View style={styles.logoArm} />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function AnimatedMessage({ children, isUser }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(12)).current;
+  const scale = useRef(new Animated.Value(0.98)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 240, useNativeDriver: false }),
+      Animated.timing(translateY, { toValue: 0, duration: 240, useNativeDriver: false }),
+      Animated.timing(scale, { toValue: 1, duration: 240, useNativeDriver: false }),
+    ]).start();
+  }, [opacity, scale, translateY]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity,
+        transform: [{ translateY }, { scale }],
+        alignSelf: isUser ? 'flex-end' : 'flex-start',
+        width: '100%',
+      }}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
+function TypingDots() {
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 500, useNativeDriver: false }),
+        Animated.timing(pulse, { toValue: 0, duration: 500, useNativeDriver: false }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  const middleOpacity = pulse.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.35, 1, 0.35],
+  });
+
+  return (
+    <View style={styles.typingDots}>
+      <View style={[styles.typingDot, { opacity: 0.45 }]} />
+      <Animated.View style={[styles.typingDot, { opacity: middleOpacity }]} />
+      <View style={[styles.typingDot, { opacity: 0.7 }]} />
+    </View>
+  );
+}
 
 const ChatbotScreen = ({ userProfile = null }) => {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      content: '¡Hola! 👋 Soy NutriBot, tu asistente personal de nutrición y fitness. ¿En qué puedo ayudarte hoy?',
-      timestamp: new Date()
-    }
-  ]);
+  const { theme, isDark } = useTheme();
+  const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
-  const scrollViewRef = useRef();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [aiReady, setAiReady] = useState(true);
+  const scrollViewRef = useRef(null);
+
+  const firstName =
+    userProfile?.fullName?.trim()?.split(' ')?.[0] ||
+    'Tu';
+
+  const quickStatus = useMemo(() => {
+    if (userProfile?.goal === 'gain_muscle') return 'Enfocado en ganancia muscular';
+    if (userProfile?.goal === 'lose_weight') return 'Enfocado en perdida de grasa';
+    if (userProfile?.goal === 'athletic') return 'Enfocado en rendimiento';
+    return 'Listo para ayudarte hoy';
+  }, [userProfile?.goal]);
 
   useEffect(() => {
+    checkAiStatus();
     loadSuggestions();
-    fadeIn();
   }, []);
 
-  const fadeIn = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 90);
+  };
+
+  const checkAiStatus = async () => {
+    try {
+      const status = await getAiStatus();
+      setAiReady(Boolean(status?.configured));
+    } catch (error) {
+      setAiReady(false);
+    }
   };
 
   const loadSuggestions = async () => {
     try {
-      let endpoint = 'http://10.10.39.18:8000/chat/suggestions';
-      if (userProfile?.goal) {
-        endpoint += `?goal=${userProfile.goal}`;
-      }
-      
-      const response = await axios.get(endpoint);
-      setSuggestions(response.data.suggestions);
+      const response = await requestChatSuggestions(userProfile);
+      setSuggestions(response.suggestions || []);
     } catch (error) {
       console.error('Error cargando sugerencias:', error);
     }
   };
 
   const sendMessage = async (text = null) => {
-    const messageText = text || inputText.trim();
-    
-    if (!messageText) return;
+    const messageText = (text || inputText).trim();
+    if (!messageText || loading) return;
+    if (!aiReady) {
+      Alert.alert('FitBot', 'La IA no esta configurada en el backend. Define GROQ_API_KEY y reinicia el backend.');
+      return;
+    }
 
-    // Agregar mensaje del usuario
-    const userMessage = {
+    const nextUserMessage = {
       role: 'user',
       content: messageText,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const nextMessages = [...messages, nextUserMessage];
+    setMessages(nextMessages);
     setInputText('');
     setLoading(true);
-
-    // Scroll automático
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    scrollToBottom();
 
     try {
-      const response = await axios.post('http://10.10.39.18:8000/chat', {
-        message: messageText,
-        conversation_history: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        })),
-        user_profile: userProfile
-      });
+      const response = await requestChatMessage(
+        buildChatPayload(messageText, messages, userProfile)
+      );
 
-      // Agregar respuesta del bot
       const botMessage = {
         role: 'assistant',
-        content: response.data.response,
-        timestamp: new Date()
+        content: response.response,
+        timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, botMessage]);
-      
-      // Actualizar sugerencias
-      if (response.data.suggestions) {
-        setSuggestions(response.data.suggestions);
+      setMessages((prev) => [...prev, botMessage]);
+      if (response.suggestions) {
+        setSuggestions(response.suggestions);
       }
-
-      // Scroll automático
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-
+      scrollToBottom();
     } catch (error) {
       console.error('Error enviando mensaje:', error);
-      
-      const errorMessage = {
-        role: 'assistant',
-        content: '❌ Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo.',
-        timestamp: new Date(),
-        isError: true
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: error.message || 'No pude responder en este momento. Reintenta en unos segundos para seguir con tu plan.',
+          timestamp: new Date(),
+          isError: true,
+        },
+      ]);
+      scrollToBottom();
     } finally {
       setLoading(false);
     }
   };
 
   const handleSuggestionPress = (suggestion) => {
-    // Limpiar el emoji del texto
-    const cleanText = suggestion.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+    const cleanText = sanitizeSuggestionText(suggestion);
     sendMessage(cleanText);
   };
 
-  const formatTime = (date) => {
-    return date.toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+  const formatTime = (date) =>
+    new Date(date).toLocaleTimeString('es-CO', {
+      hour: '2-digit',
+      minute: '2-digit',
     });
-  };
 
   const clearChat = () => {
     setMessages([
       {
         role: 'assistant',
-        content: '¡Chat reiniciado! 🔄 ¿En qué puedo ayudarte ahora?',
-        timestamp: new Date()
-      }
+        content: 'Perfecto, reiniciamos. Cuéntame qué necesitas ahora y armamos algo mejor.',
+        timestamp: new Date(),
+      },
     ]);
     loadSuggestions();
   };
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: isDark ? theme.background : '#f4f6fb' }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
     >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.botAvatar}>
-            <Text style={styles.botAvatarText}>🤖</Text>
+      <View style={[styles.header, { backgroundColor: isDark ? theme.surface : '#ffffff', borderBottomColor: theme.borderSoft }]}>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerIdentity}>
+            <FitBotLogo size={58} />
+            <View style={styles.headerCopy}>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>FitBot</Text>
+              <Text style={[styles.headerSubtitle, { color: theme.textMuted }]}>{quickStatus}</Text>
+            </View>
           </View>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>NutriBot</Text>
-            <Text style={styles.headerSubtitle}>Asistente de Nutrición y Fitness</Text>
-          </View>
+          <TouchableOpacity style={[styles.clearButton, { backgroundColor: theme.primary }]} onPress={clearChat} activeOpacity={0.86}>
+            <Ionicons name="refresh-outline" size={18} color="#ffffff" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.clearButton} onPress={clearChat}>
-          <Text style={styles.clearButtonText}>🔄</Text>
-        </TouchableOpacity>
+
+        <View style={styles.headerBadgeRow}>
+          <View style={[styles.liveBadge, { backgroundColor: theme.surfaceAlt, borderColor: theme.border }]}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>En linea</Text>
+          </View>
+          <Text style={[styles.headerHint, { color: theme.textSoft }]}>Respuestas con contexto de tu perfil</Text>
+        </View>
       </View>
 
-      {/* Messages Area */}
       <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        onContentSizeChange={scrollToBottom}
       >
-        {messages.map((message, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.messageWrapper,
-              message.role === 'user' ? styles.userMessageWrapper : styles.botMessageWrapper,
-              { opacity: fadeAnim }
-            ]}
-          >
-            {message.role === 'assistant' && (
-              <View style={styles.botAvatarSmall}>
-                <Text style={styles.botAvatarSmallText}>🤖</Text>
-              </View>
-            )}
-            
-            <View
-              style={[
-                styles.messageBubble,
-                message.role === 'user' ? styles.userMessage : styles.botMessage,
-                message.isError && styles.errorMessage
-              ]}
-            >
-              <Text
-                style={[
-                  styles.messageText,
-                  message.role === 'user' ? styles.userMessageText : styles.botMessageText
-                ]}
-              >
-                {message.content}
-              </Text>
-              <Text
-                style={[
-                  styles.messageTime,
-                  message.role === 'user' ? styles.userMessageTime : styles.botMessageTime
-                ]}
-              >
-                {formatTime(message.timestamp)}
-              </Text>
-            </View>
+        {messages.map((message, index) => {
+          const isUser = message.role === 'user';
+          return (
+            <AnimatedMessage key={`${message.role}-${index}-${message.timestamp}`} isUser={isUser}>
+              <View style={[styles.messageRow, isUser ? styles.userRow : styles.botRow]}>
+                {!isUser ? (
+                  <View style={styles.botChip}>
+                    <FitBotLogo size={34} compact />
+                  </View>
+                ) : null}
 
-            {message.role === 'user' && (
-              <View style={styles.userAvatarSmall}>
-                <Text style={styles.userAvatarSmallText}>👤</Text>
-              </View>
-            )}
-          </Animated.View>
-        ))}
+                <View
+                  style={[
+                    styles.messageBubble,
+                    isUser ? [styles.userBubble, { backgroundColor: theme.primary }] : [styles.botBubble, { backgroundColor: isDark ? theme.surfaceAlt : theme.surface, borderColor: theme.border }],
+                    message.isError && styles.errorBubble,
+                  ]}
+                >
+                  {!isUser ? <Text style={styles.speakerLabel}>FitBot</Text> : null}
+                  <Text style={[styles.messageText, isUser ? styles.userText : [styles.botText, { color: theme.text }]]}>
+                    {message.content}
+                  </Text>
+                  <Text style={[styles.messageTime, isUser ? styles.userTime : [styles.botTime, { color: theme.textSoft }]]}>
+                    {formatTime(message.timestamp)}
+                  </Text>
+                </View>
 
-        {loading && (
-          <View style={styles.typingIndicator}>
-            <View style={styles.botAvatarSmall}>
-              <Text style={styles.botAvatarSmallText}>🤖</Text>
+                {isUser ? (
+                  <View style={[styles.userAvatar, { backgroundColor: theme.primarySoft }]}>
+                    <Text style={styles.userAvatarText}>{firstName.charAt(0).toUpperCase()}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </AnimatedMessage>
+          );
+        })}
+
+        {loading ? (
+          <View style={styles.messageRow}>
+            <View style={styles.botChip}>
+              <FitBotLogo size={34} compact />
             </View>
-            <View style={styles.typingBubble}>
-              <ActivityIndicator color="#e60404" size="small" />
-              <Text style={styles.typingText}>Escribiendo...</Text>
+            <View style={[styles.typingBubble, { backgroundColor: isDark ? theme.surfaceAlt : theme.surface, borderColor: theme.border }]}>
+              <Text style={styles.speakerLabel}>FitBot</Text>
+              <TypingDots />
+              <Text style={[styles.typingText, { color: theme.textMuted }]}>Preparando una respuesta util para ti</Text>
             </View>
           </View>
-        )}
+        ) : null}
 
-        {/* Sugerencias rápidas */}
-        {messages.length <= 2 && suggestions.length > 0 && (
-          <View style={styles.suggestionsContainer}>
-            <Text style={styles.suggestionsTitle}>💡 Sugerencias:</Text>
-            {suggestions.map((suggestion, index) => (
+        {messages.length <= 2 && suggestions.length > 0 ? (
+          <View style={[styles.starterPanel, { backgroundColor: isDark ? theme.surface : theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.starterTitle, { color: theme.text }]}>Prueba con alguna de estas ideas</Text>
+            {suggestions.slice(0, 4).map((suggestion, index) => (
               <TouchableOpacity
-                key={index}
-                style={styles.suggestionButton}
+                key={`${suggestion}-${index}`}
+                style={[styles.starterButton, { backgroundColor: isDark ? '#1a1a20' : theme.surfaceAlt, borderColor: theme.border }]}
                 onPress={() => handleSuggestionPress(suggestion)}
+                activeOpacity={0.9}
               >
-                <Text style={styles.suggestionText}>{suggestion}</Text>
+                <Ionicons name="sparkles-outline" size={16} color="#ffb6cf" />
+                <Text style={[styles.starterText, { color: theme.text }]}>{suggestion}</Text>
               </TouchableOpacity>
             ))}
           </View>
-        )}
+        ) : null}
       </ScrollView>
 
-      {/* Input Area */}
-      <View style={styles.inputContainer}>
-        {suggestions.length > 0 && messages.length > 2 && (
+      <View style={[styles.composerSection, { backgroundColor: isDark ? '#0f1013' : theme.surface, borderTopColor: theme.borderSoft }]}>
+        {suggestions.length > 0 && messages.length > 2 ? (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={styles.quickSuggestions}
+            contentContainerStyle={styles.quickSuggestionsRow}
           >
-            {suggestions.slice(0, 3).map((suggestion, index) => (
+            {suggestions.slice(0, 4).map((suggestion, index) => (
               <TouchableOpacity
-                key={index}
-                style={styles.quickSuggestionChip}
+                key={`${suggestion}-${index}`}
+                style={[styles.quickChip, { backgroundColor: isDark ? '#18181b' : theme.surfaceAlt, borderColor: theme.border }]}
                 onPress={() => handleSuggestionPress(suggestion)}
+                activeOpacity={0.88}
               >
-                <Text style={styles.quickSuggestionText} numberOfLines={1}>
-                  {suggestion}
+                <Text style={[styles.quickChipText, { color: isDark ? '#fda4af' : theme.primary }]} numberOfLines={1}>
+                  {sanitizeSuggestionText(suggestion)}
                 </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-        )}
+        ) : null}
 
-        <View style={styles.inputWrapper}>
+        <View style={[styles.inputShell, { backgroundColor: isDark ? '#17181c' : theme.surfaceAlt, borderColor: theme.border }]}>
           <TextInput
-            style={styles.input}
-            placeholder="Escribe tu mensaje..."
-            placeholderTextColor="#999"
+            style={[styles.input, { color: theme.text }]}
+            placeholder="Preguntale a FitBot por tu dieta, rutina o progreso..."
+            placeholderTextColor={theme.textSoft}
             value={inputText}
             onChangeText={setInputText}
             multiline
             maxLength={500}
             editable={!loading}
           />
+
           <TouchableOpacity
             style={[styles.sendButton, (!inputText.trim() || loading) && styles.sendButtonDisabled]}
             onPress={() => sendMessage()}
             disabled={!inputText.trim() || loading}
+            activeOpacity={0.9}
           >
-            <Text style={styles.sendButtonText}>
-              {loading ? '⏳' : '📤'}
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#ffffff" size="small" />
+            ) : (
+              <Ionicons name="arrow-up" size={22} color="#ffffff" />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -306,250 +409,341 @@ const ChatbotScreen = ({ userProfile = null }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#09090b',
   },
   header: {
-    backgroundColor: '#e60404',
-    paddingTop: 50,
-    paddingBottom: 15,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : 28,
+    paddingHorizontal: 18,
+    paddingBottom: 16,
+    backgroundColor: '#111114',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1f2937',
+  },
+  headerTopRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
-  headerContent: {
+  headerIdentity: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    paddingRight: 14,
   },
-  botAvatar: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  botAvatarText: {
-    fontSize: 24,
-  },
-  headerTextContainer: {
-    justifyContent: 'center',
+  headerCopy: {
+    marginLeft: 12,
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '900',
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: '#fff',
-    opacity: 0.9,
+    marginTop: 4,
+    color: '#d1d5db',
+    fontSize: 13,
+    fontWeight: '600',
   },
   clearButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    backgroundColor: '#e60404',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  clearButtonText: {
-    fontSize: 20,
+  headerBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 14,
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#171717',
+    borderWidth: 1,
+    borderColor: '#262626',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#22c55e',
+    marginRight: 8,
+  },
+  liveText: {
+    color: '#f9fafb',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  headerHint: {
+    color: '#9ca3af',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  logoShell: {
+    backgroundColor: '#e60404',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  logoAntenna: {
+    position: 'absolute',
+    width: 3,
+    backgroundColor: '#ffffff',
+    borderRadius: 999,
+  },
+  logoDot: {
+    position: 'absolute',
+    backgroundColor: '#ffffff',
+  },
+  logoHead: {
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    marginTop: 2,
+  },
+  logoEye: {
+    backgroundColor: '#e60404',
+  },
+  logoBodyRow: {
+    position: 'absolute',
+    bottom: 6,
+    width: '82%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  logoArm: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ffffff',
   },
   messagesContainer: {
     flex: 1,
   },
   messagesContent: {
-    padding: 15,
-    paddingBottom: 20,
+    paddingHorizontal: 14,
+    paddingTop: 18,
+    paddingBottom: 24,
   },
-  messageWrapper: {
+  messageRow: {
     flexDirection: 'row',
-    marginBottom: 15,
     alignItems: 'flex-end',
+    marginBottom: 14,
   },
-  userMessageWrapper: {
-    justifyContent: 'flex-end',
-  },
-  botMessageWrapper: {
+  botRow: {
     justifyContent: 'flex-start',
   },
+  userRow: {
+    justifyContent: 'flex-end',
+  },
+  botChip: {
+    marginRight: 10,
+    marginBottom: 4,
+  },
+  userAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginLeft: 10,
+    marginBottom: 4,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userAvatarText: {
+    color: '#e60404',
+    fontSize: 13,
+    fontWeight: '900',
+  },
   messageBubble: {
-    maxWidth: '75%',
-    padding: 12,
-    borderRadius: 18,
+    maxWidth: '79%',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
-  userMessage: {
+  userBubble: {
     backgroundColor: '#e60404',
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: 8,
+    shadowColor: '#e60404',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 6,
   },
-  botMessage: {
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 4,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+  botBubble: {
+    backgroundColor: '#171717',
+    borderWidth: 1,
+    borderColor: '#27272a',
+    borderBottomLeftRadius: 8,
   },
-  errorMessage: {
-    backgroundColor: '#ffebee',
+  errorBubble: {
+    borderColor: '#7f1d1d',
+    backgroundColor: '#2b1215',
+  },
+  speakerLabel: {
+    color: '#fda4af',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    marginBottom: 6,
   },
   messageText: {
     fontSize: 15,
-    lineHeight: 20,
+    lineHeight: 22,
+    fontWeight: '500',
   },
-  userMessageText: {
-    color: '#fff',
+  userText: {
+    color: '#ffffff',
   },
-  botMessageText: {
-    color: '#333',
+  botText: {
+    color: '#f3f4f6',
   },
   messageTime: {
     fontSize: 10,
-    marginTop: 4,
+    marginTop: 8,
+    fontWeight: '700',
   },
-  userMessageTime: {
-    color: 'rgba(255,255,255,0.7)',
+  userTime: {
+    color: 'rgba(255,255,255,0.72)',
     textAlign: 'right',
   },
-  botMessageTime: {
-    color: '#999',
-  },
-  botAvatarSmall: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-    elevation: 1,
-  },
-  botAvatarSmallText: {
-    fontSize: 16,
-  },
-  userAvatarSmall: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#e60404',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  userAvatarSmallText: {
-    fontSize: 16,
-  },
-  typingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    marginBottom: 15,
+  botTime: {
+    color: '#9ca3af',
   },
   typingBubble: {
+    maxWidth: '72%',
+    borderRadius: 22,
+    borderBottomLeftRadius: 8,
+    backgroundColor: '#171717',
+    borderWidth: 1,
+    borderColor: '#27272a',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  typingDots: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 18,
-    borderBottomLeftRadius: 4,
     alignItems: 'center',
-    elevation: 1,
+    marginBottom: 8,
+  },
+  typingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ffb6cf',
+    marginRight: 6,
   },
   typingText: {
-    marginLeft: 8,
-    color: '#666',
-    fontSize: 14,
-  },
-  suggestionsContainer: {
-    marginTop: 10,
-    padding: 15,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    elevation: 2,
-  },
-  suggestionsTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#e60404',
-    marginBottom: 10,
-  },
-  suggestionButton: {
-    backgroundColor: '#f8f9fa',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  inputContainer: {
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    paddingHorizontal: 15,
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-  },
-  quickSuggestions: {
-    marginBottom: 10,
-  },
-  quickSuggestionChip: {
-    backgroundColor: '#f8f9fa',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#e60404',
-    maxWidth: 150,
-  },
-  quickSuggestionText: {
-    fontSize: 12,
-    color: '#e60404',
+    color: '#d1d5db',
+    fontSize: 13,
     fontWeight: '600',
   },
-  inputWrapper: {
+  starterPanel: {
+    backgroundColor: '#111114',
+    borderWidth: 1,
+    borderColor: '#22252d',
+    borderRadius: 24,
+    padding: 16,
+    marginTop: 8,
+  },
+  starterTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 12,
+  },
+  starterButton: {
+    backgroundColor: '#1a1a20',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#312e35',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  starterText: {
+    color: '#f3f4f6',
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginLeft: 10,
+    flex: 1,
+  },
+  composerSection: {
+    backgroundColor: '#0f1013',
+    borderTopWidth: 1,
+    borderTopColor: '#1f2937',
+    paddingTop: 10,
+    paddingHorizontal: 14,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+  },
+  quickSuggestionsRow: {
+    paddingBottom: 10,
+  },
+  quickChip: {
+    borderRadius: 999,
+    backgroundColor: '#18181b',
+    borderWidth: 1,
+    borderColor: '#3f3f46',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    marginRight: 8,
+    maxWidth: 210,
+  },
+  quickChipText: {
+    color: '#fda4af',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  inputShell: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    backgroundColor: '#17181c',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#282b33',
+    paddingLeft: 16,
+    paddingRight: 8,
+    paddingVertical: 8,
   },
   input: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 25,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    color: '#ffffff',
     fontSize: 15,
-    maxHeight: 100,
-    marginRight: 10,
+    lineHeight: 21,
+    maxHeight: 110,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingRight: 10,
   },
   sendButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: '#e60404',
-    justifyContent: 'center',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    justifyContent: 'center',
+    shadowColor: '#e60404',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    elevation: 6,
   },
   sendButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#4b5563',
+    shadowOpacity: 0,
     elevation: 0,
-  },
-  sendButtonText: {
-    fontSize: 20,
   },
 });
 
