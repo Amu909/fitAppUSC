@@ -37,6 +37,7 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+import { getAiHealth } from './app/utils/aiClient';
 import { AuthProvider, useAuth } from './app/context/AuthContext';
 import { NotificationProvider } from './app/NotificationContext';
 import { ThemeProvider, useTheme } from './app/ThemeContext';
@@ -218,6 +219,10 @@ export default function App() {
     Inter_400Regular,
     Inter_700Bold,
   });
+
+  React.useEffect(() => {
+    getAiHealth().catch(() => {});
+  }, []);
 
   React.useEffect(() => {
     if (fontsLoaded || fontError) {

@@ -41,7 +41,7 @@ export const AI_API_BASE_URL = resolveApiBaseUrl();
 
 const api = axios.create({
   baseURL: AI_API_BASE_URL,
-  timeout: 12000,
+  timeout: 45000,
 });
 
 function buildApiError(error, fallbackMessage) {
@@ -52,11 +52,11 @@ function buildApiError(error, fallbackMessage) {
   }
 
   if (error?.code === 'ECONNABORTED') {
-    return new Error(`El backend de IA no respondio a tiempo en ${AI_API_BASE_URL}.`);
+    return new Error('El servidor esta tardando en responder. Puede estar iniciando. Intenta de nuevo en unos segundos.');
   }
 
   if (error?.message === 'Network Error') {
-    return new Error(`No fue posible conectar con el backend de IA en ${AI_API_BASE_URL}.`);
+    return new Error('No se pudo conectar con el servidor. Verifica tu conexion a internet e intenta de nuevo.');
   }
 
   return new Error(fallbackMessage);
