@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 class ErrorBoundary extends React.Component {
@@ -67,6 +68,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 
 function BottomTabs() {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -75,9 +77,9 @@ function BottomTabs() {
         tabBarShowLabel: true,
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
-          height: 56,
+          height: 56 + insets.bottom,
           paddingTop: 3,
-          paddingBottom: 3,
+          paddingBottom: insets.bottom + 3,
           backgroundColor: theme.surface,
           borderTopWidth: 1,
           borderTopColor: theme.borderSoft,
@@ -241,15 +243,17 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <NotificationProvider>
-            <AppShell />
-          </NotificationProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <ThemeProvider>
+          <AuthProvider>
+            <NotificationProvider>
+              <AppShell />
+            </NotificationProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 
