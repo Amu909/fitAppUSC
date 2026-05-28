@@ -4,39 +4,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { error };
-  }
-  render() {
-    if (this.state.error) {
-      return (
-        <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} contentContainerStyle={{ padding: 24, paddingTop: 60 }}>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: '#e60404', marginBottom: 12 }}>
-            Error al iniciar la app
-          </Text>
-          <Text style={{ fontSize: 13, color: '#111', fontFamily: 'monospace' }}>
-            {this.state.error?.message || String(this.state.error)}
-          </Text>
-          {this.state.error?.stack ? (
-            <Text style={{ marginTop: 16, fontSize: 11, color: '#555', fontFamily: 'monospace' }}>
-              {this.state.error.stack}
-            </Text>
-          ) : null}
-        </ScrollView>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 import { getAiHealth } from './app/utils/aiClient';
 import { AuthProvider, useAuth } from './app/context/AuthContext';
@@ -244,15 +215,13 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <ErrorBoundary>
-        <ThemeProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <AppShell />
-            </NotificationProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <AppShell />
+          </NotificationProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
