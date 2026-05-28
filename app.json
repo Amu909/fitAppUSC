@@ -33,7 +33,8 @@
         {
           "motionPermission": "Permite a FITAPP acceder a los datos de movimiento para sincronizar pasos y actividad."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {
