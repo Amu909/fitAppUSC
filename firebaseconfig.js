@@ -12,6 +12,18 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
+const missingFirebaseEnv = Object.entries(firebaseConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingFirebaseEnv.length > 0) {
+  throw new Error(
+    `Missing Firebase config values: ${missingFirebaseEnv.join(
+      ", "
+    )}. Check your EXPO_PUBLIC_FIREBASE_* values in .env.`
+  );
+}
+
 const appfirebase = initializeApp(firebaseConfig);
 const auth = getAuth(appfirebase); // CORRECTO
 let db;

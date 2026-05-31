@@ -21,6 +21,7 @@ import {
   createUserWithEmailAndPassword,
   FacebookAuthProvider,
   GoogleAuthProvider,
+  OAuthProvider,
   sendPasswordResetEmail,
   signInWithCredential,
   signInWithEmailAndPassword,
@@ -102,13 +103,11 @@ const withTimeout = (promise, ms, message) =>
     }),
   ]);
 
-const hasGoogleConfig = Object.values(GOOGLE_IDS).some((v) => !String(v).startsWith('pending-'));
-
 export default function Login() {
   const { refreshProfile } = useAuth();
   const [mode, setMode] = useState('login');
   const [loading, setLoading] = useState(false);
-  const [socialLoading, setSocialLoading] = useState(false);
+  const [socialLoading, setSocialLoading] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -167,7 +166,7 @@ export default function Login() {
       } catch {
         Alert.alert('Google', 'No fue posible autenticar con Google.');
       } finally {
-        setSocialLoading(false);
+        setSocialLoading(null);
       }
     };
     run();
@@ -446,7 +445,7 @@ export default function Login() {
 
   const googleSignIn = async () => {
     if (Platform.OS === 'web') {
-      setSocialLoading(true);
+      setSocialLoading('google');
       try {
         const provider = new GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
@@ -460,26 +459,33 @@ export default function Login() {
         const message =
           error?.code === 'auth/unauthorized-domain'
             ? 'Este dominio no esta autorizado en Firebase Authentication.'
+            : error?.code === 'auth/operation-not-allowed'
+              ? 'Google no esta habilitado en Firebase Authentication.'
+              : error?.code === 'auth/popup-closed-by-user'
+                ? 'Cerraste la ventana antes de completar el acceso.'
             : 'No fue posible iniciar sesion con Google desde la web.';
         Alert.alert('Google', message);
       } finally {
-        setSocialLoading(false);
+        setSocialLoading(null);
       }
       return;
     }
 
-    if (!hasGoogleConfig) {
+    if (!clientId || String(clientId).startsWith('pending-')) {
       return Alert.alert(
         'Google pendiente',
-        'Configura EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID, EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID o EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID.'
+        `Configura ${Platform.OS === 'ios' ? 'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID' : 'EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID'} en .env.`
       );
     }
+    if (!request) {
+      return Alert.alert('Google', 'El proveedor aun se esta preparando. Intenta de nuevo en unos segundos.');
+    }
     try {
-      setSocialLoading(true);
+      setSocialLoading('google');
       const result = await promptAsync();
-      if (result?.type !== 'success') setSocialLoading(false);
+      if (result?.type !== 'success') setSocialLoading(null);
     } catch {
-      setSocialLoading(false);
+      setSocialLoading(null);
       Alert.alert('Google', 'No fue posible abrir el proveedor.');
     }
   };
@@ -493,7 +499,7 @@ export default function Login() {
       return;
     }
 
-    setSocialLoading(true);
+    setSocialLoading('facebook');
     try {
       const provider = new FacebookAuthProvider();
       provider.setCustomParameters({ display: 'popup' });
@@ -507,12 +513,53 @@ export default function Login() {
       const message =
         error?.code === 'auth/unauthorized-domain'
           ? 'Este dominio no esta autorizado en Firebase Authentication.'
+          : error?.code === 'auth/operation-not-allowed'
+            ? 'Facebook no esta habilitado en Firebase Authentication.'
+            : error?.code === 'auth/popup-closed-by-user'
+              ? 'Cerraste la ventana antes de completar el acceso.'
           : error?.code === 'auth/account-exists-with-different-credential'
             ? 'Ya existe una cuenta con ese correo usando otro proveedor.'
             : 'No fue posible iniciar sesion con Facebook.';
       Alert.alert('Facebook', message);
     } finally {
-      setSocialLoading(false);
+      setSocialLoading(null);
+    }
+  };
+
+  const appleSignIn = async () => {
+    if (Platform.OS !== 'web') {
+      Alert.alert(
+        'Apple',
+        'El acceso con Apple requiere compilar iOS con Sign in with Apple habilitado. En web ya queda preparado con Firebase.'
+      );
+      return;
+    }
+
+    setSocialLoading('apple');
+    try {
+      const provider = new OAuthProvider('apple.com');
+      provider.addScope('email');
+      provider.addScope('name');
+      const signed = await signInWithPopup(auth, provider);
+      await ensureUserDoc(signed.user, {
+        fullName: signed.user.displayName || '',
+        photoURL: signed.user.photoURL || '',
+      });
+      await refreshProfile();
+    } catch (error) {
+      const message =
+        error?.code === 'auth/unauthorized-domain'
+          ? 'Este dominio no esta autorizado en Firebase Authentication.'
+          : error?.code === 'auth/operation-not-allowed'
+            ? 'Apple no esta habilitado en Firebase Authentication.'
+            : error?.code === 'auth/popup-closed-by-user'
+              ? 'Cerraste la ventana antes de completar el acceso.'
+              : error?.code === 'auth/account-exists-with-different-credential'
+                ? 'Ya existe una cuenta con ese correo usando otro proveedor.'
+                : 'No fue posible iniciar sesion con Apple.';
+      Alert.alert('Apple', message);
+    } finally {
+      setSocialLoading(null);
     }
   };
 
@@ -669,14 +716,26 @@ export default function Login() {
                   </TouchableOpacity>
                   <View style={styles.divider}><View style={styles.line} /><Text style={styles.dividerText}>o continua con</Text><View style={styles.line} /></View>
                   <View style={styles.socials}>
-                    <TouchableOpacity style={styles.socialButton} onPress={googleSignIn} disabled={socialLoading || !request}>
-                      {socialLoading ? <ActivityIndicator color="#111827" /> : <Ionicons name="logo-google" size={20} color="#111827" />}
+                    <TouchableOpacity
+                      style={[styles.socialButton, socialLoading && styles.socialButtonDisabled]}
+                      onPress={googleSignIn}
+                      disabled={Boolean(socialLoading)}
+                    >
+                      {socialLoading === 'google' ? <ActivityIndicator color="#111827" /> : <Ionicons name="logo-google" size={20} color="#111827" />}
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialButton} onPress={() => Alert.alert('Apple', 'Activa el provider Apple en Firebase para habilitarlo.')}>
-                      <Ionicons name="logo-apple" size={20} color="#111827" />
+                    <TouchableOpacity
+                      style={[styles.socialButton, socialLoading && styles.socialButtonDisabled]}
+                      onPress={appleSignIn}
+                      disabled={Boolean(socialLoading)}
+                    >
+                      {socialLoading === 'apple' ? <ActivityIndicator color="#111827" /> : <Ionicons name="logo-apple" size={20} color="#111827" />}
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialButton} onPress={facebookSignIn} disabled={socialLoading}>
-                      {socialLoading ? (
+                    <TouchableOpacity
+                      style={[styles.socialButton, socialLoading && styles.socialButtonDisabled]}
+                      onPress={facebookSignIn}
+                      disabled={Boolean(socialLoading)}
+                    >
+                      {socialLoading === 'facebook' ? (
                         <ActivityIndicator color="#111827" />
                       ) : (
                         <Ionicons name="logo-facebook" size={20} color="#111827" />
@@ -753,6 +812,7 @@ const styles = StyleSheet.create({
   dividerText: { marginHorizontal: 10, color: '#94a3b8', fontSize: 12, fontWeight: '700' },
   socials: { flexDirection: 'row', justifyContent: 'center' },
   socialButton: { width: 54, height: 54, borderRadius: 27, borderWidth: 1, borderColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center', marginHorizontal: 8 },
+  socialButtonDisabled: { opacity: 0.65 },
   progressHeader: { marginBottom: 10 },
   progressLabel: { color: '#6b7280', fontSize: 13, fontWeight: '700' },
   progressTitle: { color: '#111827', fontSize: 18, fontWeight: '800', marginTop: 2 },
