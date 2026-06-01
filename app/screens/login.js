@@ -136,6 +136,7 @@ export default function Login() {
       redirectUri,
       scopes: ['openid', 'profile', 'email'],
       responseType: AuthSession.ResponseType.IdToken,
+      usePKCE: false,
     },
     googleDiscovery
   );
