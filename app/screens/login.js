@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
 import {
   createUserWithEmailAndPassword,
   FacebookAuthProvider,
@@ -117,28 +117,18 @@ export default function Login() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
   const rise = useRef(new Animated.Value(18)).current;
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'fitappusc',
-  });
-  const googleDiscovery = {
-    authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenEndpoint: 'https://oauth2.googleapis.com/token',
-    revocationEndpoint: 'https://oauth2.googleapis.com/revoke',
-  };
   const clientId = Platform.select({
     ios: GOOGLE_IDS.iosClientId,
     android: GOOGLE_IDS.androidClientId,
     default: GOOGLE_IDS.webClientId,
   });
-  const [request, response, promptAsync] = AuthSession.useAuthRequest(
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
     {
-      clientId,
-      redirectUri,
-      scopes: ['openid', 'profile', 'email'],
-      responseType: AuthSession.ResponseType.IdToken,
-      usePKCE: false,
-    },
-    googleDiscovery
+      androidClientId: GOOGLE_IDS.androidClientId,
+      iosClientId: GOOGLE_IDS.iosClientId,
+      webClientId: GOOGLE_IDS.webClientId,
+      selectAccount: true,
+    }
   );
 
   useEffect(() => {
