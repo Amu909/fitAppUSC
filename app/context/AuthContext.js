@@ -91,7 +91,7 @@ export const AuthProvider = ({ children }) => {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         fullName: firebaseUser.displayName || '',
-        role: 'member',
+        role: isBootstrapAdmin ? 'admin' : 'member',
         photoURL: firebaseUser.photoURL || '',
         active: true,
         createdAt: serverTimestamp(),
@@ -110,7 +110,6 @@ export const AuthProvider = ({ children }) => {
       }
       const resolvedDefaultProfile = {
         ...defaultProfile,
-        role: isBootstrapAdmin ? 'admin' : 'member',
       };
       writeCachedProfile(firebaseUser.uid, resolvedDefaultProfile);
       setUserProfile(resolvedDefaultProfile);
