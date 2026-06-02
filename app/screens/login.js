@@ -91,10 +91,7 @@ const GOOGLE_IDS = {
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || 'pending-web',
 };
 
-const GOOGLE_REDIRECT_URI = Platform.select({
-  android: `com.googleusercontent.apps.${GOOGLE_IDS.androidClientId.replace('.apps.googleusercontent.com', '')}:/oauth2redirect`,
-  default: 'fitappusc://',
-});
+const GOOGLE_REDIRECT_URI = 'fitappusc://';
 
 const BOOTSTRAP_ADMIN = {
   email: 'admin@fitapp.com',
