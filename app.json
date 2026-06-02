@@ -21,7 +21,18 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-foreground-login.png",
         "backgroundColor": "#e11d48"
-      }
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.googleusercontent.apps.532829391167-tt8s6k0sr8rlemcrrjcv5dofl5n3719g"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
