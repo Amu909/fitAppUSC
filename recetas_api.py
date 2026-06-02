@@ -169,7 +169,7 @@ class NutritionAnalyzer:
         elif 35 <= bmi < 40:
             risk_assessment["bmi_category"] = "Obesidad Grado II"
             risk_assessment["health_risk"] = "muy alto"
-            risk_assessment["recommendations"].append("Pérdida de peso urgente - consultar médico")
+            risk_assessment["recommendations"].append("Pérdida| de peso urgente - consultar médico")
         else:
             risk_assessment["bmi_category"] = "Obesidad Grado III"
             risk_assessment["health_risk"] = "extremo"

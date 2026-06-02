@@ -7,7 +7,14 @@
     "preview": {
       "credentialsSource": "remote",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://fitappusc-backend.onrender.com"
+        "EXPO_PUBLIC_API_BASE_URL": "https://fitappusc-backend.onrender.com",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDWzuIQeiqXrnbzuMpF1lgOOZdH4av64ow",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "my-fitapp-pro.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "my-fitapp-pro",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "my-fitapp-pro.appspot.com",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "532829391167",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:532829391167:web:2eda4d53137d5557f02b8a",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1039427937637-n2ff0tkhl3prk6m8rkk9ogohn8ujq6ge.apps.googleusercontent.com"
       },
       "android": {
         "buildType": "apk"
@@ -15,7 +22,14 @@
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://fitappusc-backend.onrender.com"
+        "EXPO_PUBLIC_API_BASE_URL": "https://fitappusc-backend.onrender.com",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDWzuIQeiqXrnbzuMpF1lgOOZdH4av64ow",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "my-fitapp-pro.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "my-fitapp-pro",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "my-fitapp-pro.appspot.com",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "532829391167",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:532829391167:web:2eda4d53137d5557f02b8a",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1039427937637-n2ff0tkhl3prk6m8rkk9ogohn8ujq6ge.apps.googleusercontent.com"
       },
       "android": {
         "buildType": "app-bundle"

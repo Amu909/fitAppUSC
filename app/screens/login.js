@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -95,6 +96,10 @@ const BOOTSTRAP_ADMIN = {
   password: 'FitAppAdmin123*',
 };
 
+const isExpoGo =
+  Constants.executionEnvironment === 'storeClient' ||
+  Constants.appOwnership === 'expo';
+
 const withTimeout = (promise, ms, message) =>
   Promise.race([
     promise,
@@ -146,7 +151,7 @@ export default function Login() {
         response.params?.access_token
       );
       if (!credential) return;
-      setSocialLoading(true);
+      setSocialLoading('google');
       try {
         const signed = await signInWithCredential(auth, credential);
         await ensureUserDoc(signed.user, {
@@ -460,6 +465,13 @@ export default function Login() {
         setSocialLoading(null);
       }
       return;
+    }
+
+    if (isExpoGo) {
+      return Alert.alert(
+        'Google en Expo Go',
+        'Google bloquea este flujo dentro de Expo Go porque la app no usa el identificador nativo com.fitappusc.app. Genera e instala un APK o Development Build para probar el acceso con Google.'
+      );
     }
 
     if (!clientId || String(clientId).startsWith('pending-')) {
