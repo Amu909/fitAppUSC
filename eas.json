@@ -14,7 +14,8 @@
         "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "my-fitapp-pro.appspot.com",
         "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "532829391167",
         "EXPO_PUBLIC_FIREBASE_APP_ID": "1:532829391167:web:2eda4d53137d5557f02b8a",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1039427937637-n2ff0tkhl3prk6m8rkk9ogohn8ujq6ge.apps.googleusercontent.com"
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1039427937637-19jja8lk0gfi35mlr0thh7o1h784a6ha.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "532829391167-7alqun15fhbho6rs303rchrsqr9srpm9.apps.googleusercontent.com"
       },
       "android": {
         "buildType": "apk"
@@ -29,7 +30,8 @@
         "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "my-fitapp-pro.appspot.com",
         "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "532829391167",
         "EXPO_PUBLIC_FIREBASE_APP_ID": "1:532829391167:web:2eda4d53137d5557f02b8a",
-        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1039427937637-n2ff0tkhl3prk6m8rkk9ogohn8ujq6ge.apps.googleusercontent.com"
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "1039427937637-19jja8lk0gfi35mlr0thh7o1h784a6ha.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "532829391167-7alqun15fhbho6rs303rchrsqr9srpm9.apps.googleusercontent.com"
       },
       "android": {
         "buildType": "app-bundle"
